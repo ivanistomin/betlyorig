@@ -3,7 +3,13 @@ const REF_PREFIX = 'ref_';
 
 function normalizeReferralValue(value, { addPrefix = false } = {}) {
   if (!value) return null;
-  const normalized = decodeURIComponent(String(value)).trim();
+  let normalized = String(value);
+  try {
+    normalized = decodeURIComponent(normalized);
+  } catch {
+    return null;
+  }
+  normalized = normalized.trim();
   if (!normalized) return null;
   if (normalized.startsWith(REF_PREFIX)) return normalized;
   return addPrefix ? `${REF_PREFIX}${normalized}` : null;

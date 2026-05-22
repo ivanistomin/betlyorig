@@ -1,11 +1,12 @@
 import { useLang } from '@/lib/i18n';
-import { Camera, Footprints, FileText } from 'lucide-react';
+import { Camera, Footprints, FileText, Video } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { getAllowedProofTypes } from '@/lib/gameConfig';
 
 const PROOF_TYPES = {
   photo:    { icon: Camera,     labelKey: 'proof_photo' },
   steps_km: { icon: Footprints, labelKey: 'proof_steps' },
+  video:    { icon: Video,      labelKey: 'proof_video' },
   any:      { icon: FileText,   labelKey: 'proof_any' },
 };
 

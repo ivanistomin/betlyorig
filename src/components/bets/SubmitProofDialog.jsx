@@ -5,12 +5,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Hourglass, Send } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
+import { PROOF_MULTIPLIERS } from '@/lib/gameConfig';
 
 export default function SubmitProofDialog({ open, bet, onClose, onConfirm }) {
   const { lang } = useLang();
   const [note, setNote] = useState('');
   const [url, setUrl] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const proofType = bet?.proof_type || 'any';
+  const proofConfig = PROOF_MULTIPLIERS[proofType];
+  const proofLabel = proofConfig ? (lang === 'ru' ? proofConfig.labelRu : proofConfig.labelEn) : proofType;
+  const proofHint = proofConfig ? (lang === 'ru' ? proofConfig.hintRu : proofConfig.hintEn) : '';
+  const requiresProofUrl = ['photo', 'video', 'steps_km'].includes(proofType);
 
   useEffect(() => {
     if (open) {
@@ -21,7 +27,8 @@ export default function SubmitProofDialog({ open, bet, onClose, onConfirm }) {
   }, [open, bet?.id]);
 
   const handleSubmit = async () => {
-    if (!note.trim() && !url.trim()) return;
+    if (requiresProofUrl && !url.trim()) return;
+    if (!requiresProofUrl && !note.trim() && !url.trim()) return;
     setSubmitting(true);
     try {
       await onConfirm({ note, url });
@@ -55,6 +62,16 @@ export default function SubmitProofDialog({ open, bet, onClose, onConfirm }) {
             </div>
           )}
 
+          {proofConfig && (
+            <div className="rounded-lg bg-neon-cyan/5 border border-neon-cyan/20 px-3 py-2">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                {lang === 'ru' ? 'Нужный формат доказательства' : 'Required proof format'}
+              </p>
+              <p className="font-heading text-sm text-neon-cyan mt-0.5">{proofLabel}</p>
+              <p className="text-[11px] text-muted-foreground mt-1">{proofHint}</p>
+            </div>
+          )}
+
           <div className="space-y-1.5">
             <label className="text-xs text-muted-foreground">
               {lang === 'ru' ? 'Описание выполнения' : 'How you completed it'}
@@ -63,8 +80,8 @@ export default function SubmitProofDialog({ open, bet, onClose, onConfirm }) {
               value={note}
               onChange={(e) => setNote(e.target.value)}
               placeholder={lang === 'ru'
-                ? 'Например: пробежал 5 км по парку, трекер ниже'
-                : 'e.g. ran 5km in the park, tracker link below'}
+                ? 'Например: пробежал 5 км по парку, ссылка на пруф ниже'
+                : 'e.g. ran 5km in the park, proof link below'}
               className="bg-secondary border-border/50 h-24 resize-none"
               maxLength={500}
             />
@@ -72,12 +89,18 @@ export default function SubmitProofDialog({ open, bet, onClose, onConfirm }) {
 
           <div className="space-y-1.5">
             <label className="text-xs text-muted-foreground">
-              {lang === 'ru' ? 'Ссылка на пруф (необязательно)' : 'Proof URL (optional)'}
+              {requiresProofUrl
+                ? (lang === 'ru' ? 'Ссылка на пруф (обязательно)' : 'Proof URL (required)')
+                : (lang === 'ru' ? 'Ссылка на пруф (необязательно)' : 'Proof URL (optional)')}
             </label>
             <Input
               value={url}
               onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://..."
+              placeholder={
+                proofType === 'steps_km'
+                  ? 'Strava / Apple Fitness / Google Fit / Garmin'
+                  : 'https://...'
+              }
               className="bg-secondary border-border/50"
             />
           </div>
@@ -102,7 +125,7 @@ export default function SubmitProofDialog({ open, bet, onClose, onConfirm }) {
           </Button>
           <Button
             onClick={handleSubmit}
-            disabled={submitting || (!note.trim() && !url.trim())}
+            disabled={submitting || (requiresProofUrl ? !url.trim() : (!note.trim() && !url.trim()))}
             className="flex-1 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading gap-1.5"
           >
             <Send className="w-4 h-4" />

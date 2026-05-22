@@ -72,3 +72,16 @@ export async function getUserFromAuthHeader(req) {
   if (error) return null;
   return data?.user || null;
 }
+
+// Returns true if the authenticated caller has is_admin = true in user_profiles.
+export async function isCallerAdmin(req) {
+  const user = await getUserFromAuthHeader(req);
+  if (!user?.email) return { admin: false, user: null };
+  const admin = getSupabaseAdmin();
+  const { data } = await admin
+    .from('user_profiles')
+    .select('is_admin, user_email')
+    .eq('user_email', user.email)
+    .maybeSingle();
+  return { admin: !!data?.is_admin, user };
+}

@@ -18,6 +18,7 @@ import Missions from '@/pages/Missions';
 import Exchange from '@/pages/Exchange';
 import CommunityBets from '@/pages/CommunityBets';
 import BattlePass from '@/pages/BattlePass';
+import Moderation from '@/pages/Moderation';
 
 const AuthenticatedApp = () => {
   const { isLoadingAuth, isLoadingPublicSettings, authError, navigateToLogin } = useAuth();
@@ -62,6 +63,7 @@ const AuthenticatedApp = () => {
         <Route path="/exchange" element={<Exchange />} />
         <Route path="/community" element={<CommunityBets />} />
         <Route path="/battle-pass" element={<BattlePass />} />
+        <Route path="/moderation" element={<Moderation />} />
       </Route>
       <Route path="*" element={<PageNotFound />} />
     </Routes>

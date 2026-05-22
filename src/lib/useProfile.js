@@ -1,14 +1,6 @@
 import { db } from '@/api/base44Client';
 import { useState, useEffect, useCallback } from 'react';
-
-function getInviterTgId() {
-  const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
-  const startParam = tg?.initDataUnsafe?.start_param || '';
-  if (startParam.startsWith('ref_')) {
-    return startParam.replace('ref_', '');
-  }
-  return null;
-}
+import { getInviterTgId } from '@/lib/referrals';
 
 export function useProfile(tgUser = null) {
   const [profile, setProfile] = useState(null);

@@ -7,7 +7,7 @@ module.exports = {
       fontFamily: {
         heading: ['var(--font-heading)'],
         body: ['var(--font-body)'],
-        caveat: ['Caveat', 'cursive'],
+        caveat: ['Roboto', 'sans-serif'],
         roboto: ['Roboto', 'sans-serif'],
       },
   		borderRadius: {

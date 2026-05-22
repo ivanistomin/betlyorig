@@ -1,5 +1,6 @@
 import React, { createContext, useState, useContext, useEffect, useCallback } from 'react';
 import { supabase } from '@/api/supabaseClient';
+import { getReferralStartParam } from '@/lib/referrals';
 
 const AuthContext = createContext(null);
 
@@ -44,7 +45,11 @@ export const AuthProvider = ({ children }) => {
   const runTelegramLogin = useCallback(async () => {
     const initData = getTelegramInitData();
     if (!initData) {
-      setAuthError({ type: 'auth_required', message: 'Open this app inside Telegram' });
+      setAuthError({
+        type: 'auth_required',
+        message: 'Open this app inside Telegram',
+        referralStartParam: getReferralStartParam(),
+      });
       setIsLoadingAuth(false);
       setAuthChecked(true);
       return;

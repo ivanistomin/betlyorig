@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@400;500;600;700&family=Caveat:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600;700;800;900&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,8 +6,8 @@
 
 @layer base {
   :root {
-    --font-heading: 'Caveat', cursive;
-    --font-body: 'Inter', sans-serif;
+    --font-heading: 'Roboto', sans-serif;
+    --font-body: 'Roboto', sans-serif;
 
     --background: 250 20% 6%;
     --foreground: 210 40% 96%;
@@ -73,6 +73,15 @@
     @apply bg-background text-foreground font-body;
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
+  }
+
+  html,
+  body,
+  button,
+  input,
+  textarea,
+  select {
+    font-family: var(--font-body);
   }
 }
 

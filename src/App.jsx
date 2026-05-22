@@ -6,6 +6,7 @@ import PageNotFound from './lib/PageNotFound';
 import { AuthProvider, useAuth } from '@/lib/AuthContext';
 import UserNotRegisteredError from '@/components/UserNotRegisteredError';
 import { LangProvider } from '@/lib/i18n';
+import { createTelegramReferralLink } from '@/lib/referrals';
 
 import AppLayout from '@/components/layout/AppLayout';
 import WelcomeModal from '@/components/onboarding/WelcomeModal';
@@ -42,6 +43,9 @@ const AuthenticatedApp = () => {
       const isTMA = !!window?.Telegram?.WebApp?.initData;
       if (isTMA) {
         // Let it through — TMA handles auth differently
+      } else if (authError.referralStartParam) {
+        window.location.href = createTelegramReferralLink(authError.referralStartParam);
+        return null;
       } else {
         navigateToLogin();
         return null;

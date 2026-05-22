@@ -8,6 +8,7 @@ import { Trophy, Users, Globe, UserPlus } from 'lucide-react';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProfile } from '@/lib/useProfile';
 import { useTelegram } from '@/lib/useTelegram';
+import { createTelegramReferralLink } from '@/lib/referrals';
 import Podium from '@/components/leaderboard/Podium';
 import PlayerRow from '@/components/leaderboard/PlayerRow';
 
@@ -118,8 +119,7 @@ export default function Leaderboard() {
 
 function EmptyFriends({ tab, tgUser, profile }) {
   if (tab === 'friends') {
-    const botUsername = 'BetlyAppBot'; // Your real Telegram bot username
-    const inviteLink = `https://t.me/${botUsername}?start=ref_${profile?.tg_id || 'user'}`;
+    const inviteLink = createTelegramReferralLink(profile?.tg_id || 'user');
 
     const handleInvite = () => {
       const tg = window?.Telegram?.WebApp;

@@ -1,10 +1,8 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
-
+import { db } from '@/api/base44Client';
 import { useState, useEffect, useCallback } from 'react';
 
-// Parse start_param from Telegram WebApp (ref_TGID)
 function getInviterTgId() {
-  const tg = window?.Telegram?.WebApp;
+  const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
   const startParam = tg?.initDataUnsafe?.start_param || '';
   if (startParam.startsWith('ref_')) {
     return startParam.replace('ref_', '');
@@ -19,14 +17,19 @@ export function useProfile(tgUser = null) {
 
   const loadProfile = useCallback(async () => {
     setLoading(true);
-    const me = await db.auth.me();
+    let me;
+    try {
+      me = await db.auth.me();
+    } catch {
+      setLoading(false);
+      return;
+    }
     setUser(me);
 
     const profiles = await db.entities.UserProfile.filter({ user_email: me.email });
 
     if (profiles.length > 0) {
       const existing = profiles[0];
-      // Sync TG data if available and changed
       if (tgUser) {
         const updates = {};
         if (tgUser.id && existing.tg_id !== tgUser.id) updates.tg_id = tgUser.id;
@@ -46,9 +49,9 @@ export function useProfile(tgUser = null) {
     } else {
       const newProfile = await db.entities.UserProfile.create({
         user_email: me.email,
-        tg_id: tgUser?.id || null,
-        tg_username: tgUser?.username || null,
-        tg_photo_url: tgUser?.photoUrl || null,
+        tg_id: tgUser?.id || me.tg_id || null,
+        tg_username: tgUser?.username || me.tg_username || null,
+        tg_photo_url: tgUser?.photoUrl || me.tg_photo_url || null,
         gems_balance: 500,
         total_gems_earned: 0,
         total_gems_lost: 0,
@@ -65,7 +68,6 @@ export function useProfile(tgUser = null) {
       });
       setProfile(newProfile);
 
-      // Handle invite referral if came via invite link
       const inviterTgId = getInviterTgId();
       if (inviterTgId && tgUser?.id && inviterTgId !== tgUser.id) {
         db.functions.invoke('handleInviteRef', { inviter_tg_id: inviterTgId }).catch(() => {});

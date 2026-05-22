@@ -25,6 +25,28 @@ export const PROOF_MULTIPLIERS = {
   any:      { multiplier: 0.8, labelEn: '📝 Any proof', labelRu: '📝 Любое доказательство', hint: 'Flexible → ×0.8' },
 };
 
+// Which proof types make sense per category. Steps/km only fits fitness.
+export const CATEGORY_PROOF_TYPES = {
+  fitness:      ['photo', 'steps_km', 'any'],
+  health:       ['photo', 'any'],
+  learning:     ['photo', 'any'],
+  productivity: ['photo', 'any'],
+  mindfulness:  ['photo', 'any'],
+  finance:      ['photo', 'any'],
+  social:       ['photo', 'any'],
+  custom:       ['photo', 'any'],
+};
+
+export function getAllowedProofTypes(category) {
+  return CATEGORY_PROOF_TYPES[category] || ['photo', 'any'];
+}
+
+export function normalizeProofType(category, proofType) {
+  const allowed = getAllowedProofTypes(category);
+  if (allowed.includes(proofType)) return proofType;
+  return allowed[0];
+}
+
 // Early close modes (alternative system)
 export const CLOSE_MODES = {
   easy:   { labelEn: 'Easy', labelRu: 'Лёгкий', descEn: 'Close early any day, reward proportional to days', descRu: 'Закрыть досрочно в любой день, награда пропорциональна дням', color: 'text-green-400', bg: 'bg-green-400/10' },

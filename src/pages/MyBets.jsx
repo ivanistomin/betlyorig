@@ -1,12 +1,16 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
 
+import { db } from '@/api/base44Client';
 import { useState } from 'react';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AnimatePresence } from 'framer-motion';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useProfile } from '@/lib/useProfile';
 import { calculateReward, getXpForLevel } from '@/lib/gameConfig';
+function rewardForBet(bet) {
+  if (bet.reward_amount && bet.reward_amount > 0) return bet.reward_amount;
+  return calculateReward(bet.stake_amount, bet.duration_days, bet.proof_type);
+}
 import BetCard from '@/components/bets/BetCard';
 import { toast } from 'sonner';
 
@@ -31,7 +35,7 @@ export default function MyBets() {
 
   const handleComplete = async (bet) => {
     if (!profile) return;
-    const reward = calculateReward(bet.stake_amount, bet.difficulty);
+    const reward = rewardForBet(bet);
     const newStreak = profile.current_streak + 1;
     const xpGain = Math.floor(bet.stake_amount * 0.5) + 25;
     let newXp = profile.xp + xpGain;

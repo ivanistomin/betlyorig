@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { Clock, Check, X, AlertTriangle } from 'lucide-react';
 import { CATEGORIES, DIFFICULTIES } from '@/lib/gameConfig';
 import GemsBadge from '../common/GemsBadge';
-import { format, formatDistanceToNow, isPast } from 'date-fns';
+import { formatDistanceToNow, isPast } from 'date-fns';
 
 export default function BetCard({ bet, onComplete, onFail, compact = false }) {
   const cat = CATEGORIES[bet.category] || CATEGORIES.custom;

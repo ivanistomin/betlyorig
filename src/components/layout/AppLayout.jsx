@@ -1,6 +1,6 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Home, Target, Trophy, Sword, Gem, Plus } from 'lucide-react';
+import { Target, Trophy, Sword, Gem, Plus } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
 
 const NAV_ITEMS = [

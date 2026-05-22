@@ -1,4 +1,3 @@
-import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useProfile } from '@/lib/useProfile';
 import { useTelegram } from '@/lib/useTelegram';

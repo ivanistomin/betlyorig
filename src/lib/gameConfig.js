@@ -20,21 +20,23 @@ export const DURATION_MULTIPLIERS = {
 
 // Proof type multipliers
 export const PROOF_MULTIPLIERS = {
-  photo:    { multiplier: 1.0, labelEn: '📷 Photo', labelRu: '📷 Фото', hint: 'Easy to fake → ×1.0' },
-  steps_km: { multiplier: 1.5, labelEn: '👟 Steps/km', labelRu: '👟 Шаги/км', hint: 'Tracker required → ×1.5' },
-  any:      { multiplier: 0.8, labelEn: '📝 Any proof', labelRu: '📝 Любое доказательство', hint: 'Flexible → ×0.8' },
+  photo:    { multiplier: 1.0, labelEn: '📷 Photo', labelRu: '📷 Фото', hintEn: 'Photo/screenshot proof', hintRu: 'Фото или скриншот результата' },
+  video:    { multiplier: 1.35, labelEn: '🎥 Video', labelRu: '🎥 Видео', hintEn: 'Video of the exercise/result', hintRu: 'Видео выполнения или результата' },
+  steps_km: { multiplier: 1.5, labelEn: '👟 Tracker', labelRu: '👟 Трекер', hintEn: 'Steps/km from a tracker', hintRu: 'Шаги/км из трекера' },
+  any:      { multiplier: 0.8, labelEn: '📝 Any proof', labelRu: '📝 Любое доказательство', hintEn: 'Legacy flexible proof', hintRu: 'Старый гибкий формат' },
 };
 
-// Which proof types make sense per category. Steps/km only fits fitness.
+// Which proof types make sense per category. "Any proof" stays supported for old bets,
+// but new bets use concrete proof formats.
 export const CATEGORY_PROOF_TYPES = {
-  fitness:      ['photo', 'steps_km', 'any'],
-  health:       ['photo', 'any'],
-  learning:     ['photo', 'any'],
-  productivity: ['photo', 'any'],
-  mindfulness:  ['photo', 'any'],
-  finance:      ['photo', 'any'],
-  social:       ['photo', 'any'],
-  custom:       ['photo', 'any'],
+  fitness:      ['steps_km', 'video', 'photo'],
+  health:       ['photo', 'video'],
+  learning:     ['photo', 'video'],
+  productivity: ['photo'],
+  mindfulness:  ['photo', 'video'],
+  finance:      ['photo'],
+  social:       ['photo', 'video'],
+  custom:       ['photo', 'video', 'steps_km'],
 };
 
 export function getAllowedProofTypes(category) {

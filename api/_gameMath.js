@@ -11,6 +11,7 @@ const DURATION_MULTIPLIERS = {
 
 const PROOF_MULTIPLIERS = {
   photo:    1.0,
+  video:    1.35,
   steps_km: 1.5,
   any:      0.8,
 };

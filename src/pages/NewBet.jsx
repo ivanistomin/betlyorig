@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { motion, AnimatePresence } from 'framer-motion';
-import { ArrowLeft, Zap, ShieldAlert, PenLine } from 'lucide-react';
+import { ArrowLeft, Zap, ShieldAlert, PenLine, LockKeyhole, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
@@ -40,7 +40,7 @@ export default function NewBet() {
     category: 'fitness',
     stake_amount: 50,
     duration_days: 7,
-    proof_type: 'any',
+    proof_type: 'steps_km',
     close_mode: 'medium',
   });
 
@@ -67,7 +67,7 @@ export default function NewBet() {
     setForm((p) => ({
       ...p,
       title: lang === 'ru' ? tpl.titleRu : tpl.titleEn,
-      proof_type: normalizeProofType(p.category, tpl.proof_type),
+      proof_type: tpl.proof_type,
     }));
     setGoalError('');
     setCustomMode(false);
@@ -124,6 +124,11 @@ export default function NewBet() {
 
   const templates = BET_TEMPLATES[form.category] || [];
   const isCustomCat = form.category === 'custom';
+  const selectedTemplate = templates.find((tpl) => tpl.titleRu === form.title || tpl.titleEn === form.title);
+  const proofConfig = PROOF_MULTIPLIERS[form.proof_type];
+  const isProofEditable = customMode || isCustomCat;
+  const proofLabel = proofConfig ? (lang === 'ru' ? proofConfig.labelRu : proofConfig.labelEn) : form.proof_type;
+  const proofHint = proofConfig ? (lang === 'ru' ? proofConfig.hintRu : proofConfig.hintEn) : '';
 
   return (
     <div className="px-4 pt-4 space-y-5 pb-10">
@@ -140,7 +145,10 @@ export default function NewBet() {
 
       {/* Step 1: Category */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">{t('category')}</label>
+        <div className="flex items-center gap-2">
+          <span className="w-6 h-6 rounded-full bg-primary/15 text-primary text-xs font-heading font-bold flex items-center justify-center">1</span>
+          <label className="text-sm font-medium text-foreground">{t('category')}</label>
+        </div>
         <div className="grid grid-cols-4 gap-2">
           {Object.entries(CATEGORIES).map(([key, cat]) => (
             <motion.button
@@ -167,11 +175,14 @@ export default function NewBet() {
           exit={{ opacity: 0, y: -8 }}
           className="space-y-2"
         >
-          <label className="text-sm font-medium text-foreground">
-            {isCustomCat
-              ? (lang === 'ru' ? 'Опишите свою цель' : 'Describe your goal')
-              : t('goal_question')}
-          </label>
+          <div className="flex items-center gap-2">
+            <span className="w-6 h-6 rounded-full bg-neon-cyan/15 text-neon-cyan text-xs font-heading font-bold flex items-center justify-center">2</span>
+            <label className="text-sm font-medium text-foreground">
+              {isCustomCat
+                ? (lang === 'ru' ? 'Опишите свою цель' : 'Describe your goal')
+                : (lang === 'ru' ? 'Что именно делаем?' : 'What exactly will you do?')}
+            </label>
+          </div>
 
           {/* Template grid (not for custom) */}
           {!isCustomCat && templates.length > 0 && (
@@ -189,8 +200,13 @@ export default function NewBet() {
                     }`}
                   >
                     <span className="text-lg shrink-0">{tpl.icon}</span>
-                    <span className={`text-xs font-medium leading-tight ${isSelected ? 'text-primary' : 'text-foreground'}`}>
-                      {label}
+                    <span className="min-w-0">
+                      <span className={`block text-xs font-medium leading-tight ${isSelected ? 'text-primary' : 'text-foreground'}`}>
+                        {label}
+                      </span>
+                      <span className="block text-[10px] text-muted-foreground mt-1">
+                        {lang === 'ru' ? PROOF_MULTIPLIERS[tpl.proof_type]?.labelRu : PROOF_MULTIPLIERS[tpl.proof_type]?.labelEn}
+                      </span>
                     </span>
                   </motion.button>
                 );
@@ -309,34 +325,62 @@ export default function NewBet() {
 
       {/* Proof type */}
       <div className="space-y-2">
-        <label className="text-sm font-medium text-foreground">{t('proof_type')}</label>
-        <div className={`grid gap-2 ${allowedProofTypes.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
-          {allowedProofTypes.map((key) => {
-            const pm = PROOF_MULTIPLIERS[key];
-            if (!pm) return null;
-            return (
-              <motion.button
-                key={key}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => update('proof_type', key)}
-                className={`rounded-xl p-3 text-center border transition-all ${
-                  form.proof_type === key ? 'border-neon-cyan bg-neon-cyan/10' : 'border-border/50 bg-card'
-                }`}
-              >
-                <p className={`text-sm font-medium ${form.proof_type === key ? 'text-neon-cyan' : 'text-foreground'}`}>
-                  {lang === 'ru' ? pm.labelRu : pm.labelEn}
-                </p>
-                <p className="text-[11px] text-neon-gold font-bold mt-1">×{pm.multiplier}</p>
-              </motion.button>
-            );
-          })}
+        <div className="flex items-center gap-2">
+          <span className="w-6 h-6 rounded-full bg-neon-gold/15 text-neon-gold text-xs font-heading font-bold flex items-center justify-center">3</span>
+          <label className="text-sm font-medium text-foreground">{t('proof_type')}</label>
         </div>
-        {form.category !== 'fitness' && (
-          <p className="text-[11px] text-muted-foreground">
+        {!isProofEditable && selectedTemplate && (
+          <div className="rounded-xl p-3 border border-neon-cyan/30 bg-gradient-to-r from-neon-cyan/10 to-primary/10 flex items-start gap-3">
+            <LockKeyhole className="w-5 h-5 text-neon-cyan mt-0.5 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-sm font-heading font-semibold text-foreground">
+                {proofLabel}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                {proofHint}
+              </p>
+              <p className="text-[11px] text-neon-gold font-bold mt-1">×{proofConfig?.multiplier || 1}</p>
+            </div>
+            <CheckCircle2 className="w-4 h-4 text-neon-cyan ml-auto shrink-0" />
+          </div>
+        )}
+        {!isProofEditable && !selectedTemplate && (
+          <div className="rounded-xl p-3 border border-border/50 bg-card text-xs text-muted-foreground">
             {lang === 'ru'
-              ? '«Шаги/км» доступны только для категории «Фитнес».'
-              : 'Steps/km is available only for the Fitness category.'}
-          </p>
+              ? 'Выберите активность выше — подходящий тип доказательства подставится автоматически.'
+              : 'Choose an activity above — the matching proof type will be set automatically.'}
+          </div>
+        )}
+        {isProofEditable && (
+          <>
+            <div className={`grid gap-2 ${allowedProofTypes.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+              {allowedProofTypes.map((key) => {
+                const pm = PROOF_MULTIPLIERS[key];
+                if (!pm) return null;
+                return (
+                  <motion.button
+                    key={key}
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => update('proof_type', key)}
+                    className={`rounded-xl p-3 text-center border transition-all ${
+                      form.proof_type === key ? 'border-neon-cyan bg-neon-cyan/10' : 'border-border/50 bg-card'
+                    }`}
+                  >
+                    <p className={`text-sm font-medium ${form.proof_type === key ? 'text-neon-cyan' : 'text-foreground'}`}>
+                      {lang === 'ru' ? pm.labelRu : pm.labelEn}
+                    </p>
+                    <p className="text-[10px] text-muted-foreground mt-1">{lang === 'ru' ? pm.hintRu : pm.hintEn}</p>
+                    <p className="text-[11px] text-neon-gold font-bold mt-1">×{pm.multiplier}</p>
+                  </motion.button>
+                );
+              })}
+            </div>
+            <p className="text-[11px] text-muted-foreground">
+              {lang === 'ru'
+                ? 'Для своих целей выбери конкретный формат проверки: фото, видео или трекер. «Любое доказательство» больше не предлагается.'
+                : 'For custom goals, choose a concrete verification format: photo, video, or tracker. “Any proof” is no longer offered.'}
+            </p>
+          </>
         )}
       </div>
 

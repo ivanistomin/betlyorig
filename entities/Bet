@@ -1,0 +1,83 @@
+{
+  "name": "Bet",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Title of the bet/goal"
+    },
+    "description": {
+      "type": "string",
+      "description": "Detailed description of the goal"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "fitness",
+        "health",
+        "learning",
+        "productivity",
+        "mindfulness",
+        "finance",
+        "social",
+        "custom"
+      ],
+      "description": "Category of the bet"
+    },
+    "stake_amount": {
+      "type": "number",
+      "description": "Amount of GEMS staked"
+    },
+    "duration_days": {
+      "type": "number",
+      "description": "Duration of the bet in days"
+    },
+    "deadline": {
+      "type": "string",
+      "format": "date-time",
+      "description": "Deadline for the bet"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "completed",
+        "failed",
+        "pending_verification"
+      ],
+      "default": "active",
+      "description": "Current status of the bet"
+    },
+    "proof_url": {
+      "type": "string",
+      "description": "URL to proof of completion"
+    },
+    "reward_amount": {
+      "type": "number",
+      "description": "Reward received upon completion"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "easy",
+        "medium",
+        "hard",
+        "legendary"
+      ],
+      "default": "medium",
+      "description": "Difficulty level of the bet"
+    },
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user who placed the bet"
+    }
+  },
+  "required": [
+    "title",
+    "category",
+    "stake_amount",
+    "duration_days",
+    "deadline",
+    "user_email"
+  ]
+}

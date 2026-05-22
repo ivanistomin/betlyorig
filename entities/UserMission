@@ -1,0 +1,35 @@
+{
+  "name": "UserMission",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "User email"
+    },
+    "mission_id": {
+      "type": "string",
+      "description": "Reference to Mission entity"
+    },
+    "progress": {
+      "type": "number",
+      "default": 0,
+      "description": "Current progress towards requirement_value"
+    },
+    "completed": {
+      "type": "boolean",
+      "default": false
+    },
+    "claimed": {
+      "type": "boolean",
+      "default": false
+    },
+    "completed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_email",
+    "mission_id"
+  ]
+}

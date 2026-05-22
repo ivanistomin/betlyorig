@@ -1,0 +1,60 @@
+{
+  "name": "Mission",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Mission title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Mission description"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "daily",
+        "weekly",
+        "one_time"
+      ],
+      "description": "Mission type"
+    },
+    "reward_gems": {
+      "type": "number",
+      "description": "GEMS reward for completing this mission"
+    },
+    "icon": {
+      "type": "string",
+      "description": "Emoji icon for the mission"
+    },
+    "requirement_type": {
+      "type": "string",
+      "enum": [
+        "place_bet",
+        "win_bet",
+        "streak",
+        "invite_friend",
+        "total_bets",
+        "login",
+        "complete_profile"
+      ],
+      "description": "What needs to be done"
+    },
+    "requirement_value": {
+      "type": "number",
+      "description": "How many times / amount needed",
+      "default": 1
+    },
+    "is_active": {
+      "type": "boolean",
+      "default": true
+    }
+  },
+  "required": [
+    "title",
+    "description",
+    "type",
+    "reward_gems",
+    "requirement_type"
+  ]
+}

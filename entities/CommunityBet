@@ -1,0 +1,93 @@
+{
+  "name": "CommunityBet",
+  "type": "object",
+  "properties": {
+    "title": {
+      "type": "string",
+      "description": "Challenge title"
+    },
+    "description": {
+      "type": "string",
+      "description": "Full description and rules"
+    },
+    "category": {
+      "type": "string",
+      "enum": [
+        "fitness",
+        "health",
+        "learning",
+        "productivity",
+        "mindfulness",
+        "finance",
+        "social",
+        "custom"
+      ]
+    },
+    "creator_email": {
+      "type": "string",
+      "description": "Email of the creator"
+    },
+    "creator_tg_id": {
+      "type": "string"
+    },
+    "stake_amount": {
+      "type": "number",
+      "description": "Required GEMS stake to participate"
+    },
+    "duration_days": {
+      "type": "number"
+    },
+    "difficulty": {
+      "type": "string",
+      "enum": [
+        "easy",
+        "medium",
+        "hard",
+        "legendary"
+      ],
+      "default": "medium"
+    },
+    "proof_type": {
+      "type": "string",
+      "enum": [
+        "photo",
+        "steps_km",
+        "any"
+      ],
+      "default": "any",
+      "description": "Required proof type"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected",
+        "active"
+      ],
+      "default": "pending",
+      "description": "Moderation status"
+    },
+    "creator_revenue_pct": {
+      "type": "number",
+      "default": 10,
+      "description": "% of loser stakes that go to creator"
+    },
+    "participants_count": {
+      "type": "number",
+      "default": 0
+    },
+    "total_pool": {
+      "type": "number",
+      "default": 0
+    }
+  },
+  "required": [
+    "title",
+    "description",
+    "category",
+    "stake_amount",
+    "duration_days",
+    "creator_email"
+  ]
+}

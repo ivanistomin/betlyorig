@@ -1,5 +1,4 @@
 import { getXpForLevel } from '@/lib/gameConfig';
-import { Progress } from '@/components/ui/progress';
 
 export default function LevelProgress({ level, xp }) {
   const xpNeeded = getXpForLevel(level);

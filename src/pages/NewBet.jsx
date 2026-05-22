@@ -1,5 +1,5 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
 
+import { db } from '@/api/base44Client';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -13,9 +13,10 @@ import {
   CATEGORIES,
   DURATION_MULTIPLIERS,
   PROOF_MULTIPLIERS,
-  CLOSE_MODES,
   calculateReward,
   validateGoalTitle,
+  getAllowedProofTypes,
+  normalizeProofType,
 } from '@/lib/gameConfig';
 import { BET_TEMPLATES } from '@/lib/betTemplates';
 import GemsBadge from '@/components/common/GemsBadge';
@@ -52,18 +53,27 @@ export default function NewBet() {
   };
 
   const handleCategoryChange = (cat) => {
-    update('category', cat);
-    update('title', '');
+    setForm((p) => ({
+      ...p,
+      category: cat,
+      title: '',
+      proof_type: normalizeProofType(cat, p.proof_type),
+    }));
     setGoalError('');
     setCustomMode(cat === 'custom');
   };
 
   const handleTemplate = (tpl) => {
-    update('title', lang === 'ru' ? tpl.titleRu : tpl.titleEn);
-    update('proof_type', tpl.proof_type);
+    setForm((p) => ({
+      ...p,
+      title: lang === 'ru' ? tpl.titleRu : tpl.titleEn,
+      proof_type: normalizeProofType(p.category, tpl.proof_type),
+    }));
     setGoalError('');
     setCustomMode(false);
   };
+
+  const allowedProofTypes = getAllowedProofTypes(form.category);
 
   const reward = calculateReward(form.stake_amount, form.duration_days, form.proof_type);
   const durMult = DURATION_MULTIPLIERS[form.duration_days]?.multiplier || 1;
@@ -300,23 +310,34 @@ export default function NewBet() {
       {/* Proof type */}
       <div className="space-y-2">
         <label className="text-sm font-medium text-foreground">{t('proof_type')}</label>
-        <div className="grid grid-cols-3 gap-2">
-          {Object.entries(PROOF_MULTIPLIERS).map(([key, pm]) => (
-            <motion.button
-              key={key}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => update('proof_type', key)}
-              className={`rounded-xl p-3 text-center border transition-all ${
-                form.proof_type === key ? 'border-neon-cyan bg-neon-cyan/10' : 'border-border/50 bg-card'
-              }`}
-            >
-              <p className={`text-sm font-medium ${form.proof_type === key ? 'text-neon-cyan' : 'text-foreground'}`}>
-                {lang === 'ru' ? pm.labelRu : pm.labelEn}
-              </p>
-              <p className="text-[11px] text-neon-gold font-bold mt-1">×{pm.multiplier}</p>
-            </motion.button>
-          ))}
+        <div className={`grid gap-2 ${allowedProofTypes.length === 2 ? 'grid-cols-2' : 'grid-cols-3'}`}>
+          {allowedProofTypes.map((key) => {
+            const pm = PROOF_MULTIPLIERS[key];
+            if (!pm) return null;
+            return (
+              <motion.button
+                key={key}
+                whileTap={{ scale: 0.95 }}
+                onClick={() => update('proof_type', key)}
+                className={`rounded-xl p-3 text-center border transition-all ${
+                  form.proof_type === key ? 'border-neon-cyan bg-neon-cyan/10' : 'border-border/50 bg-card'
+                }`}
+              >
+                <p className={`text-sm font-medium ${form.proof_type === key ? 'text-neon-cyan' : 'text-foreground'}`}>
+                  {lang === 'ru' ? pm.labelRu : pm.labelEn}
+                </p>
+                <p className="text-[11px] text-neon-gold font-bold mt-1">×{pm.multiplier}</p>
+              </motion.button>
+            );
+          })}
         </div>
+        {form.category !== 'fitness' && (
+          <p className="text-[11px] text-muted-foreground">
+            {lang === 'ru'
+              ? '«Шаги/км» доступны только для категории «Фитнес».'
+              : 'Steps/km is available only for the Fitness category.'}
+          </p>
+        )}
       </div>
 
       {/* Reward preview */}

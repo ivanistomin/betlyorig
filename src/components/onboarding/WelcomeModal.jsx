@@ -1,4 +1,3 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -61,12 +60,15 @@ export default function WelcomeModal() {
             </div>
 
             {/* Hero image — full width, tall */}
-            <div className="relative mx-0 overflow-hidden" style={{ height: 260 }}>
-              <img
-                src="https://media.db.com/images/public/6a099ea78cf8bfef98f1b03d/2c945b172_generated_image.png"
-                alt="Betly rewards"
-                className="w-full h-full object-cover object-top"
-              />
+            <div
+              className="relative mx-0 overflow-hidden flex items-center justify-center"
+              style={{
+                height: 260,
+                background:
+                  'radial-gradient(ellipse at center, hsl(265 80% 25%) 0%, hsl(258 50% 12%) 60%, hsl(250 20% 7%) 100%)',
+              }}
+            >
+              <div className="text-7xl select-none">🏆💎</div>
               {/* Gradient overlay bottom */}
               <div className="absolute inset-0" style={{ background: 'linear-gradient(to bottom, transparent 40%, hsl(258 35% 7%) 100%)' }} />
 
@@ -90,7 +92,7 @@ export default function WelcomeModal() {
                     {lang === 'ru' ? 'Стартовый баланс' : 'Starting balance'}
                   </p>
                   <div className="flex items-center gap-2">
-                    <img src="https://media.db.com/images/public/6a099ea78cf8bfef98f1b03d/9dcad51e4_gem.png" alt="gem" className="w-6 h-6" />
+                    <span className="text-2xl leading-none" role="img" aria-label="gem">💎</span>
                     <span className="text-xl font-heading font-black text-blue-300">500 GEMS</span>
                   </div>
                 </motion.div>

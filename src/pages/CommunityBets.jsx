@@ -1,17 +1,17 @@
-const db = globalThis.__B44_DB__ || { auth:{ isAuthenticated: async()=>false, me: async()=>null }, entities:new Proxy({}, { get:()=>({ filter:async()=>[], get:async()=>null, create:async()=>({}), update:async()=>({}), delete:async()=>({}) }) }), integrations:{ Core:{ UploadFile:async()=>({ file_url:'' }) } } };
 
+import { db } from '@/api/base44Client';
 import { useState } from 'react';
 
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Users, Clock, CheckCircle2, Loader2 } from 'lucide-react';
+import { Plus, Users, Clock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { useProfile } from '@/lib/useProfile';
 import { useTelegram } from '@/lib/useTelegram';
 import { useLang } from '@/lib/i18n';
-import { CATEGORIES, DIFFICULTIES } from '@/lib/gameConfig';
+import { CATEGORIES, DIFFICULTIES, normalizeProofType } from '@/lib/gameConfig';
 import GemsBadge from '@/components/common/GemsBadge';
 import ProofTypeSelector from '@/components/bets/ProofTypeSelector';
 import { toast } from 'sonner';
@@ -123,7 +123,9 @@ export default function CommunityBets() {
                 onChange={e => update('description', e.target.value)} className="bg-secondary border-border/50 h-20 resize-none" />
               <div className="grid grid-cols-4 gap-2">
                 {Object.entries(CATEGORIES).map(([key, cat]) => (
-                  <motion.button key={key} whileTap={{ scale: 0.95 }} onClick={() => update('category', key)}
+                  <motion.button key={key} whileTap={{ scale: 0.95 }} onClick={() => {
+                    setForm(p => ({ ...p, category: key, proof_type: normalizeProofType(key, p.proof_type) }));
+                  }}
                     className={`rounded-xl p-2 text-center border transition-all ${form.category === key ? 'border-primary bg-primary/10' : 'border-border/50 bg-secondary'}`}>
                     <span className="text-lg">{cat.emoji}</span>
                     <p className="text-[9px] text-muted-foreground mt-0.5">{cat.label}</p>
@@ -142,7 +144,7 @@ export default function CommunityBets() {
                     className="bg-secondary border-border/50 mt-1" />
                 </div>
               </div>
-              <ProofTypeSelector value={form.proof_type} onChange={v => update('proof_type', v)} />
+              <ProofTypeSelector value={form.proof_type} category={form.category} onChange={v => update('proof_type', v)} />
               <div className="p-3 rounded-xl bg-neon-gold/5 border border-neon-gold/20 text-xs text-muted-foreground">
                 💰 You'll earn <strong className="text-neon-gold">10%</strong> of every loser's stake in your challenge (after moderation approval).
               </div>

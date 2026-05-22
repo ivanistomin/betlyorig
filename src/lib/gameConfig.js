@@ -27,15 +27,17 @@ export const PROOF_MULTIPLIERS = {
 };
 
 // Which proof types make sense per category. "Any proof" stays supported for old bets,
-// but new bets use concrete proof formats.
+// but new bets use concrete proof formats. Only the "custom" category lets the user
+// pick a proof type — for everything else the proof type is locked by the chosen
+// activity template.
 export const CATEGORY_PROOF_TYPES = {
   fitness:      ['steps_km', 'video', 'photo'],
-  health:       ['photo', 'video'],
+  health:       ['photo'],
   learning:     ['photo', 'video'],
   productivity: ['photo'],
-  mindfulness:  ['photo', 'video'],
+  mindfulness:  ['photo', 'video', 'steps_km'],
   finance:      ['photo'],
-  social:       ['photo', 'video'],
+  social:       ['photo'],
   custom:       ['photo', 'video', 'steps_km'],
 };
 

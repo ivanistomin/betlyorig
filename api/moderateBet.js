@@ -25,10 +25,13 @@ export default async function handler(req, res) {
   const nowIso = new Date().toISOString();
 
   if (action === 'reject') {
+    // Rejected proofs are recorded as plain failures — the user's stake is
+    // lost, the streak resets and the bet shows up in the "Lost" list with
+    // the moderator's note attached.
     const { error } = await sb
       .from('bets')
       .update({
-        status: 'rejected',
+        status: 'failed',
         rejection_reason: String(reason).trim().slice(0, 500),
         reviewed_by: user.email,
         reviewed_at: nowIso,
@@ -36,9 +39,8 @@ export default async function handler(req, res) {
       .eq('id', betId);
     if (error) return sendJson(res, 500, { error: error.message });
 
-    // Penalise as a normal fail (stake is lost, streak resets).
     await applyFailureToProfile(sb, bet);
-    return sendJson(res, 200, { ok: true, status: 'rejected' });
+    return sendJson(res, 200, { ok: true, status: 'failed' });
   }
 
   // Approve.

@@ -5,8 +5,6 @@ import GemsBadge from '../common/GemsBadge';
 import { formatDistanceToNow, isPast } from 'date-fns';
 import { useLang } from '@/lib/i18n';
 
-const AUTO_APPROVE_AFTER_MS = 12 * 60 * 60 * 1000;
-
 export default function BetCard({ bet, onComplete, onFail, compact = false }) {
   const { lang } = useLang();
   const cat = CATEGORIES[bet.category] || CATEGORIES.custom;
@@ -23,12 +21,6 @@ export default function BetCard({ bet, onComplete, onFail, compact = false }) {
 
   const sc = statusConfig[bet.status] || statusConfig.active;
 
-  // 12-hour auto-approve countdown for pending_review.
-  let autoApproveText = null;
-  if (bet.status === 'pending_review' && bet.proof_submitted_at) {
-    const eta = new Date(new Date(bet.proof_submitted_at).getTime() + AUTO_APPROVE_AFTER_MS);
-    autoApproveText = formatDistanceToNow(eta, { addSuffix: true });
-  }
 
   return (
     <motion.div
@@ -52,24 +44,19 @@ export default function BetCard({ bet, onComplete, onFail, compact = false }) {
       )}
 
       {bet.status === 'pending_review' && (
-        <div className="rounded-lg bg-neon-gold/5 border border-neon-gold/20 p-2.5 space-y-1">
+        <div className="rounded-lg bg-neon-gold/5 border border-neon-gold/20 p-2.5">
           <p className="text-[11px] font-heading font-semibold text-neon-gold flex items-center gap-1">
             <Hourglass className="w-3 h-3" />
-            {lang === 'ru' ? 'Ждём модератора' : 'Awaiting moderator'}
+            {lang === 'ru' ? 'Ждём модератора (до 12 ч)' : 'Awaiting moderator (up to 12h)'}
           </p>
-          {autoApproveText && (
-            <p className="text-[11px] text-muted-foreground">
-              {lang === 'ru' ? 'Авто-одобрение' : 'Auto-approve'} {autoApproveText}
-            </p>
-          )}
         </div>
       )}
 
-      {bet.status === 'rejected' && bet.rejection_reason && (
+      {(bet.status === 'failed' || bet.status === 'rejected') && bet.rejection_reason && (
         <div className="rounded-lg bg-destructive/5 border border-destructive/30 p-2.5 space-y-1">
           <p className="text-[11px] font-heading font-semibold text-destructive flex items-center gap-1">
             <AlertTriangle className="w-3 h-3" />
-            {lang === 'ru' ? 'Причина отклонения' : 'Rejection reason'}
+            {lang === 'ru' ? 'Причина отклонения модератором' : 'Moderator rejection reason'}
           </p>
           <p className="text-xs text-foreground/90 whitespace-pre-wrap">{bet.rejection_reason}</p>
         </div>

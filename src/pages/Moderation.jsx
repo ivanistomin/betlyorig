@@ -15,8 +15,6 @@ import GemsBadge from '@/components/common/GemsBadge';
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from 'sonner';
 
-const AUTO_APPROVE_AFTER_MS = 12 * 60 * 60 * 1000;
-
 export default function Moderation() {
   const { profile, loading } = useProfile();
   const [tab, setTab] = useState('proofs');
@@ -158,11 +156,9 @@ function ProofCard({ bet, index, busy, onApprove, onReject }) {
   const cat = CATEGORIES[bet.category] || CATEGORIES.custom;
   const diff = DIFFICULTIES[bet.difficulty] || DIFFICULTIES.medium;
 
-  let autoApproveText = null;
-  if (bet.proof_submitted_at) {
-    const eta = new Date(new Date(bet.proof_submitted_at).getTime() + AUTO_APPROVE_AFTER_MS);
-    autoApproveText = formatDistanceToNow(eta, { addSuffix: true });
-  }
+  const submittedAgo = bet.proof_submitted_at
+    ? formatDistanceToNow(new Date(bet.proof_submitted_at), { addSuffix: true })
+    : null;
 
   return (
     <motion.div
@@ -191,17 +187,7 @@ function ProofCard({ bet, index, busy, onApprove, onReject }) {
         {bet.proof_note
           ? <p className="text-sm text-foreground whitespace-pre-wrap">{bet.proof_note}</p>
           : <p className="text-sm text-muted-foreground italic">— без описания —</p>}
-        {bet.proof_url && (
-          <a
-            href={bet.proof_url}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-1 text-xs text-neon-cyan hover:underline break-all"
-          >
-            <ExternalLink className="w-3 h-3 shrink-0" />
-            {bet.proof_url}
-          </a>
-        )}
+        {bet.proof_url && <ProofAttachment url={bet.proof_url} />}
       </div>
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -209,9 +195,9 @@ function ProofCard({ bet, index, busy, onApprove, onReject }) {
           <span className={`px-2 py-0.5 rounded-full font-medium ${diff.bgColor} ${diff.color}`}>
             {diff.label}
           </span>
-          {autoApproveText && (
+          {submittedAgo && (
             <span className="flex items-center gap-1">
-              <Hourglass className="w-3 h-3" /> Авто {autoApproveText}
+              <Hourglass className="w-3 h-3" /> {submittedAgo}
             </span>
           )}
         </div>
@@ -380,6 +366,41 @@ function CommunityCard({ cb, index, busy, onApprove, onReject }) {
         </motion.button>
       </div>
     </motion.div>
+  );
+}
+
+function ProofAttachment({ url }) {
+  const isImage = /\.(png|jpe?g|gif|webp|heic|heif|bmp)(\?|$)/i.test(url);
+  const isVideo = /\.(mp4|mov|webm|m4v|ogg)(\?|$)/i.test(url);
+  return (
+    <div className="space-y-2">
+      {isImage && (
+        <a href={url} target="_blank" rel="noreferrer" className="block">
+          <img
+            src={url}
+            alt="Proof"
+            className="rounded-lg max-h-72 w-full object-contain bg-black/30 border border-border/40"
+            loading="lazy"
+          />
+        </a>
+      )}
+      {isVideo && (
+        <video
+          src={url}
+          controls
+          className="rounded-lg max-h-72 w-full object-contain bg-black/30 border border-border/40"
+        />
+      )}
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex items-center gap-1 text-xs text-neon-cyan hover:underline break-all"
+      >
+        <ExternalLink className="w-3 h-3 shrink-0" />
+        {isImage || isVideo ? 'Открыть оригинал' : url}
+      </a>
+    </div>
   );
 }
 

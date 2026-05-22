@@ -11,6 +11,16 @@ import BetCard from '@/components/bets/BetCard';
 import SubmitProofDialog from '@/components/bets/SubmitProofDialog';
 import { toast } from 'sonner';
 
+// "Rejected" used to be its own tab, but rejections are now recorded as plain
+// losses (stake lost, streak reset). Legacy rows with status='rejected' from
+// before the change are still surfaced under the "Lost" tab so users see them.
+const STATUS_BY_TAB = {
+  active: ['active'],
+  pending: ['pending_review'],
+  won: ['completed'],
+  lost: ['failed', 'rejected'],
+};
+
 export default function MyBets() {
   const [tab, setTab] = useState('active');
   const { profile, user, refreshProfile } = useProfile();
@@ -18,20 +28,12 @@ export default function MyBets() {
   const [proofTarget, setProofTarget] = useState(null);
   const { lang } = useLang();
 
-  const STATUS_BY_TAB = {
-    active: 'active',
-    pending: 'pending_review',
-    won: 'completed',
-    lost: 'failed',
-    rejected: 'rejected',
-  };
-
   const { data: bets = [], isLoading } = useQuery({
     queryKey: ['my-bets', user?.email, tab],
     queryFn: () => {
-      const status = STATUS_BY_TAB[tab];
+      const statuses = STATUS_BY_TAB[tab];
       const sort = tab === 'active' ? '-created_date' : '-updated_date';
-      return db.entities.Bet.filter({ user_email: user.email, status }, sort);
+      return db.entities.Bet.filter({ user_email: user.email, status: statuses }, sort);
     },
     enabled: !!user,
   });
@@ -76,14 +78,12 @@ export default function MyBets() {
     pending: '⏳',
     won: '🏆',
     lost: '💔',
-    rejected: '⚠️',
   }[tab];
   const emptyLabel = {
     active: lang === 'ru' ? 'Нет активных ставок' : 'No active bets',
     pending: lang === 'ru' ? 'Нет ставок на проверке' : 'Nothing under review',
     won: lang === 'ru' ? 'Побед пока нет' : 'No wins yet',
     lost: lang === 'ru' ? 'Поражений нет — продолжай!' : 'No losses — keep going!',
-    rejected: lang === 'ru' ? 'Отклонённых ставок нет' : 'No rejected proofs',
   }[tab];
 
   return (
@@ -93,12 +93,11 @@ export default function MyBets() {
       </h1>
 
       <Tabs value={tab} onValueChange={setTab}>
-        <TabsList className="w-full bg-secondary grid grid-cols-5 h-9">
+        <TabsList className="w-full bg-secondary grid grid-cols-4 h-9">
           <TabsTrigger value="active" className="text-[11px] px-1">🎯</TabsTrigger>
           <TabsTrigger value="pending" className="text-[11px] px-1">⏳</TabsTrigger>
           <TabsTrigger value="won" className="text-[11px] px-1">✅</TabsTrigger>
           <TabsTrigger value="lost" className="text-[11px] px-1">❌</TabsTrigger>
-          <TabsTrigger value="rejected" className="text-[11px] px-1">⚠️</TabsTrigger>
         </TabsList>
       </Tabs>
 

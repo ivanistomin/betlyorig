@@ -1,4 +1,4 @@
-const BOT_USERNAME = 'BetlyAppBot';
+const BOT_USERNAME = 'betlyy_bot';
 const REF_PREFIX = 'ref_';
 
 function normalizeReferralValue(value, { addPrefix = false } = {}) {

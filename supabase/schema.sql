@@ -14,6 +14,7 @@ end;
 $$ language plpgsql;
 
 -- Bets ----------------------------------------------------------------------
+-- status values: 'active' | 'pending_review' | 'completed' | 'failed' | 'rejected'
 create table if not exists public.bets (
   id uuid primary key default gen_random_uuid(),
   user_email text not null,
@@ -26,14 +27,26 @@ create table if not exists public.bets (
   status text not null default 'active',
   proof_url text,
   proof_type text default 'any',
+  proof_note text,
+  proof_submitted_at timestamptz,
+  rejection_reason text,
+  reviewed_by text,
+  reviewed_at timestamptz,
   close_mode text default 'medium',
   reward_amount numeric default 0,
   difficulty text default 'medium',
   created_date timestamptz not null default now(),
   updated_date timestamptz not null default now()
 );
+alter table public.bets add column if not exists proof_note text;
+alter table public.bets add column if not exists proof_submitted_at timestamptz;
+alter table public.bets add column if not exists rejection_reason text;
+alter table public.bets add column if not exists reviewed_by text;
+alter table public.bets add column if not exists reviewed_at timestamptz;
 create index if not exists bets_user_email_idx on public.bets (user_email);
 create index if not exists bets_status_idx on public.bets (status);
+create index if not exists bets_pending_review_idx on public.bets (status, proof_submitted_at)
+  where status = 'pending_review';
 drop trigger if exists set_bets_updated on public.bets;
 create trigger set_bets_updated before update on public.bets
   for each row execute function public.set_updated_date();
@@ -58,10 +71,14 @@ create table if not exists public.user_profiles (
   achievements text[] default '{}',
   display_name text,
   avatar_emoji text default '🎮',
+  is_admin boolean default false,
   created_date timestamptz not null default now(),
   updated_date timestamptz not null default now()
 );
+alter table public.user_profiles add column if not exists is_admin boolean default false;
 create index if not exists user_profiles_tg_id_idx on public.user_profiles (tg_id);
+create index if not exists user_profiles_is_admin_idx on public.user_profiles (is_admin)
+  where is_admin = true;
 drop trigger if exists set_user_profiles_updated on public.user_profiles;
 create trigger set_user_profiles_updated before update on public.user_profiles
   for each row execute function public.set_updated_date();
@@ -135,17 +152,26 @@ create or replace function public.auth_email() returns text language sql stable 
   );
 $$;
 
+-- Helper: is the logged-in user a moderator/admin? Looked up by user_email.
+create or replace function public.is_admin() returns boolean language sql stable security definer set search_path = public as $$
+  select exists (
+    select 1 from public.user_profiles
+    where user_email = public.auth_email() and coalesce(is_admin, false) = true
+  );
+$$;
+
 -- Bets: a user can read/write only their own rows.
+-- Admins can read every bet (for the moderation queue) and update them.
 drop policy if exists bets_select on public.bets;
 create policy bets_select on public.bets for select
-  using (user_email = public.auth_email());
+  using (user_email = public.auth_email() or public.is_admin());
 drop policy if exists bets_insert on public.bets;
 create policy bets_insert on public.bets for insert
   with check (user_email = public.auth_email());
 drop policy if exists bets_update on public.bets;
 create policy bets_update on public.bets for update
-  using (user_email = public.auth_email())
-  with check (user_email = public.auth_email());
+  using (user_email = public.auth_email() or public.is_admin())
+  with check (user_email = public.auth_email() or public.is_admin());
 drop policy if exists bets_delete on public.bets;
 create policy bets_delete on public.bets for delete
   using (user_email = public.auth_email());
@@ -162,16 +188,18 @@ create policy user_profiles_update on public.user_profiles for update
   using (user_email = public.auth_email())
   with check (user_email = public.auth_email());
 
--- Community bets: anyone can read approved/own; insert only as oneself.
+-- Community bets: anyone can read approved/own; admins see everything.
+-- Inserts only as oneself; updates by owner, admin, or anyone (for counters
+-- on approved rows — the participant join flow updates total_pool).
 drop policy if exists community_bets_select on public.community_bets;
 create policy community_bets_select on public.community_bets for select
-  using (status = 'approved' or creator_email = public.auth_email());
+  using (status = 'approved' or creator_email = public.auth_email() or public.is_admin());
 drop policy if exists community_bets_insert on public.community_bets;
 create policy community_bets_insert on public.community_bets for insert
   with check (creator_email = public.auth_email());
 drop policy if exists community_bets_update on public.community_bets;
 create policy community_bets_update on public.community_bets for update
-  using (creator_email = public.auth_email() or status = 'approved')
+  using (creator_email = public.auth_email() or status = 'approved' or public.is_admin())
   with check (true);
 
 -- Missions: world-readable catalog, writes only via service role.
@@ -192,3 +220,8 @@ create policy user_missions_update on public.user_missions for update
 drop policy if exists user_missions_delete on public.user_missions;
 create policy user_missions_delete on public.user_missions for delete
   using (user_email = public.auth_email());
+
+-- ---------------------------------------------------------------------------
+-- How to promote a user to moderator/admin:
+--   update public.user_profiles set is_admin = true where user_email = 'tg_<TG_ID>@betly.app';
+-- (Run from the Supabase SQL editor as the service role.)

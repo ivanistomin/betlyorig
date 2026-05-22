@@ -1,7 +1,8 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Target, Trophy, Sword, Gem, Plus } from 'lucide-react';
+import { Target, Trophy, Sword, Gem, Plus, Shield } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
+import { useProfile } from '@/lib/useProfile';
 
 const NAV_ITEMS = [
   { path: '/missions',   icon: Sword,  labelKey: 'missions' },
@@ -94,9 +95,12 @@ function BottomNav() {
 }
 
 function TopBar() {
+  const { profile } = useProfile();
+  const isAdmin = !!profile?.is_admin;
+
   return (
     <div
-      className="sticky top-0 z-40 flex items-center justify-center px-4 h-12"
+      className="sticky top-0 z-40 flex items-center justify-center px-4 h-12 relative"
       style={{
         background: 'rgba(18, 14, 30, 0.6)',
         backdropFilter: 'blur(20px) saturate(160%)',
@@ -112,6 +116,26 @@ function TopBar() {
           Betly
         </motion.span>
       </Link>
+
+      {isAdmin && (
+        <Link
+          to="/moderation"
+          aria-label="Moderation"
+          className="absolute right-3 top-1/2 -translate-y-1/2"
+        >
+          <motion.div
+            whileTap={{ scale: 0.9 }}
+            className="w-8 h-8 rounded-xl flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, hsl(265 90% 60% / 0.25), hsl(180 80% 50% / 0.25))',
+              border: '1px solid rgba(255,255,255,0.12)',
+              boxShadow: '0 0 12px hsl(265 90% 60% / 0.35)',
+            }}
+          >
+            <Shield className="w-4 h-4 text-primary" />
+          </motion.div>
+        </Link>
+      )}
     </div>
   );
 }

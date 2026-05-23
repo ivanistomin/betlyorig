@@ -8,6 +8,12 @@ import CyberSlots from '@/components/games/CyberSlots';
 import NeonPlinko from '@/components/games/NeonPlinko';
 import CyberWheel from '@/components/games/CyberWheel';
 import AeroCrash from '@/components/games/AeroCrash';
+import {
+  SlotsPreview,
+  PlinkoPreview,
+  WheelPreview,
+  CrashPreview,
+} from '@/components/games/GamePreviews';
 
 const GAMES = [
   {
@@ -19,6 +25,7 @@ const GAMES = [
     emoji: '🎰',
     accent: 'from-fuchsia-500 to-purple-600',
     glow: 'hsl(290 95% 60%)',
+    Preview: SlotsPreview,
   },
   {
     id: 'plinko',
@@ -29,6 +36,7 @@ const GAMES = [
     emoji: '⚡',
     accent: 'from-cyan-400 to-blue-600',
     glow: 'hsl(195 95% 55%)',
+    Preview: PlinkoPreview,
   },
   {
     id: 'wheel',
@@ -39,6 +47,7 @@ const GAMES = [
     emoji: '🎡',
     accent: 'from-emerald-400 to-teal-600',
     glow: 'hsl(160 90% 50%)',
+    Preview: WheelPreview,
   },
   {
     id: 'crash',
@@ -49,6 +58,7 @@ const GAMES = [
     emoji: '🚀',
     accent: 'from-orange-400 to-red-600',
     glow: 'hsl(15 95% 60%)',
+    Preview: CrashPreview,
   },
 ];
 
@@ -107,8 +117,8 @@ export default function Game() {
           </h1>
           <p className="text-xs text-muted-foreground mt-1 max-w-xs">
             {lang === 'ru'
-              ? 'Играй на GEMS и испытай свою удачу. Только виртуальная валюта.'
-              : 'Play with GEMS and test your luck. Virtual currency only.'}
+              ? 'Играй на GEMS и испытай свою удачу.'
+              : 'Play with GEMS and test your luck.'}
           </p>
         </div>
         <GemsBadge amount={profile.gems_balance} />
@@ -126,59 +136,68 @@ export default function Game() {
 
       <div className="grid grid-cols-2 gap-3">
         <AnimatePresence>
-          {GAMES.map((g, i) => (
-            <motion.button
-              key={g.id}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              whileTap={{ scale: 0.96 }}
-              onClick={() => setActive(g.id)}
-              className="relative aspect-[4/5] rounded-2xl p-4 text-left overflow-hidden flex flex-col justify-between"
-              style={{
-                background:
-                  'linear-gradient(160deg, rgba(22,16,38,0.85) 0%, rgba(8,6,16,0.95) 100%)',
-                border: '1px solid rgba(255,255,255,0.08)',
-                boxShadow: `0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 0 24px ${g.glow}33`,
-              }}
-            >
-              <div
-                className="absolute inset-0 opacity-25 pointer-events-none"
+          {GAMES.map((g, i) => {
+            const Preview = g.Preview;
+            return (
+              <motion.button
+                key={g.id}
+                initial={{ opacity: 0, y: 14 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: i * 0.05 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={() => setActive(g.id)}
+                className="relative aspect-[4/5] rounded-2xl p-3 text-left overflow-hidden flex flex-col"
                 style={{
-                  background: `radial-gradient(circle at top right, ${g.glow}88, transparent 60%)`,
+                  background:
+                    'linear-gradient(160deg, rgba(22,16,38,0.85) 0%, rgba(8,6,16,0.95) 100%)',
+                  border: '1px solid rgba(255,255,255,0.08)',
+                  boxShadow: `0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 0 24px ${g.glow}33`,
                 }}
-              />
-              <div className="relative flex items-start justify-between">
+              >
                 <div
-                  className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-gradient-to-br ${g.accent}`}
-                  style={{ boxShadow: `0 0 18px ${g.glow}88` }}
-                >
-                  {g.emoji}
+                  className="absolute inset-0 opacity-25 pointer-events-none"
+                  style={{
+                    background: `radial-gradient(circle at top right, ${g.glow}88, transparent 60%)`,
+                  }}
+                />
+
+                <div className="relative flex items-center justify-between">
+                  <div
+                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg bg-gradient-to-br ${g.accent}`}
+                    style={{ boxShadow: `0 0 14px ${g.glow}88` }}
+                  >
+                    {g.emoji}
+                  </div>
+                  <span
+                    className="text-[9px] uppercase tracking-wider font-heading font-semibold px-1.5 py-0.5 rounded-md"
+                    style={{
+                      color: g.glow,
+                      background: `${g.glow}22`,
+                      border: `1px solid ${g.glow}44`,
+                    }}
+                  >
+                    Play
+                  </span>
                 </div>
-              </div>
-              <div className="relative space-y-1">
-                <p className="text-sm font-heading font-bold text-foreground leading-tight">
-                  {lang === 'ru' ? g.titleRu : g.titleEn}
-                </p>
-                <p className="text-[11px] text-muted-foreground leading-snug">
-                  {lang === 'ru' ? g.descRu : g.descEn}
-                </p>
-              </div>
-            </motion.button>
-          ))}
+
+                <div className="relative flex-1 my-1 flex items-center justify-center">
+                  <Preview />
+                </div>
+
+                <div className="relative space-y-0.5">
+                  <p className="text-sm font-heading font-bold text-foreground leading-tight">
+                    {lang === 'ru' ? g.titleRu : g.titleEn}
+                  </p>
+                  <p className="text-[11px] text-muted-foreground leading-snug">
+                    {lang === 'ru' ? g.descRu : g.descEn}
+                  </p>
+                </div>
+              </motion.button>
+            );
+          })}
         </AnimatePresence>
       </div>
 
-      <div className="rounded-2xl p-4 text-center text-[11px] text-muted-foreground"
-        style={{
-          background: 'rgba(22,16,38,0.45)',
-          border: '1px solid rgba(255,255,255,0.06)',
-        }}
-      >
-        {lang === 'ru'
-          ? '⚠️ Шанс победы небольшой, как и в любом казино. Играй на виртуальные GEMS — не на деньги.'
-          : '⚠️ The win chance is small, as in any casino. Play with virtual GEMS — not money.'}
-      </div>
     </div>
   );
 }

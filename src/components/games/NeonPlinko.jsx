@@ -6,16 +6,16 @@ import { toast } from 'sonner';
 import { applyGameResult, validateStake } from './useGameBet';
 import StakeBar from './StakeBar';
 
-// 10 rows of pegs, 11 buckets at the bottom.
-const ROWS = 10;
+// 14 rows of pegs, 13 buckets at the bottom — denser obstacle field.
+const ROWS = 14;
 // Bucket multipliers — edges pay big, center is mostly a loss.
 // Tuned so the expected return is well below 1× (real house edge, harder to win).
-const MULTIPLIERS = [9, 3, 1.5, 0.5, 0.2, 0, 0.2, 0.5, 1.5, 3, 9];
+const MULTIPLIERS = [12, 5, 2, 1, 0.4, 0.2, 0, 0.2, 0.4, 1, 2, 5, 12];
 
 const WIDTH = 320;
-const HEIGHT = 460;
+const HEIGHT = 520;
 const PEG_RADIUS = 3.5;
-const BALL_RADIUS = 7;
+const BALL_RADIUS = 6.5;
 
 // Brand palette ------------------------------------------------------------
 // Pegs start dark blue and flash to brand purple on hit.

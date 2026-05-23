@@ -5,11 +5,11 @@ import { useLang } from '@/lib/i18n';
 import { useProfile } from '@/lib/useProfile';
 
 const NAV_ITEMS = [
-  { path: '/avatar',     icon: User,    labelKey: 'avatar' },
+  { path: '/game',       icon: Gamepad2,labelKey: 'game' },
   { path: '/missions',   icon: Sword,   labelKey: 'missions' },
   { path: '/bets',       icon: Target,  labelKey: 'bets' },
   { path: '/new-bet',    icon: Plus,    isCenter: true },
-  { path: '/game',       icon: Gamepad2,labelKey: 'game' },
+  { path: '/avatar',     icon: User,    labelKey: 'avatar' },
   { path: '/leaderboard',icon: Trophy,  labelKey: 'rank' },
   { path: '/exchange',   icon: Gem,     labelKey: 'exchange' },
 ];

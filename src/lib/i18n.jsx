@@ -9,7 +9,7 @@ export const translations = {
     exchange: 'Exchange',
     profile: 'Profile',
     avatar: 'Avatar',
-    game: 'Game',
+    game: 'Games',
     // Dashboard
     dashboard_subtitle: 'Your habit battleground',
     active_bets: 'Active Bets',
@@ -80,7 +80,7 @@ export const translations = {
     exchange: 'Обмен',
     profile: 'Профиль',
     avatar: 'Аватар',
-    game: 'Игра',
+    game: 'Игры',
     // Dashboard
     dashboard_subtitle: 'Твоя арена привычек',
     active_bets: 'Активные ставки',

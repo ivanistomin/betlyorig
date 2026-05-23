@@ -165,14 +165,17 @@ const functions = {
 const integrations = {
   Core: {
     async UploadFile({ file }) {
-      if (!file) return { file_url: '' };
-      const path = `uploads/${Date.now()}_${file.name || 'file'}`;
+      if (!file) throw new Error('No file provided');
+      // Sanitize filename — Supabase storage rejects keys with special chars.
+      const safeName = (file.name || 'file').replace(/[^A-Za-z0-9._-]/g, '_');
+      const path = `uploads/${Date.now()}_${safeName}`;
       const { data, error } = await supabase.storage
         .from('proofs')
-        .upload(path, file, { upsert: false });
+        .upload(path, file, { upsert: false, contentType: file.type || undefined });
       if (error) {
+
         console.error('[Supabase upload]', error);
-        return { file_url: '' };
+        throw new Error(error.message || 'Upload failed');
       }
       // Return the internal path so we can generate signed URLs server-side
       return { file_url: data.path };

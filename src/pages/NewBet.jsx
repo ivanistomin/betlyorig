@@ -75,6 +75,24 @@ export default function NewBet() {
   const proofMult = PROOF_MULTIPLIERS[form.proof_type]?.multiplier || 0.8;
   const totalMult = (durMult * proofMult).toFixed(2);
 
+  // ── Step handlers ───────────────────────────────────────────────────────────
+  const pickCategory = (key) => {
+    setForm((p) => ({ ...p, category: key, title: '', proof_type: '' }));
+    setGoalError('');
+    setStep(1);
+  };
+
+  const pickTemplate = (tpl) => {
+    const title = lang === 'ru' ? tpl.titleRu : tpl.titleEn;
+    setForm((p) => ({ ...p, title, proof_type: tpl.proof_type }));
+    setGoalError('');
+  };
+
+  const pickCustomInTemplates = () => {
+    setForm((p) => ({ ...p, title: '', proof_type: '' }));
+    setGoalError('');
+  };
+
   // ── Navigation helpers ──────────────────────────────────────────────────────
   const goBack = () => {
     if (step === 0) {

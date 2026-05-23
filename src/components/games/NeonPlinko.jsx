@@ -6,25 +6,37 @@ import { toast } from 'sonner';
 import { applyGameResult, validateStake } from './useGameBet';
 import StakeBar from './StakeBar';
 
-// 10 rows of pegs, 11 buckets at the bottom — more bounces, longer fall.
+// 10 rows of pegs, 11 buckets at the bottom.
 const ROWS = 10;
-// Bucket multipliers — edges pay more, center pays less; tuned to ~7% house edge.
-const MULTIPLIERS = [15, 4, 2, 1.2, 0.7, 0.3, 0.7, 1.2, 2, 4, 15];
+// Bucket multipliers — edges pay big, center is mostly a loss.
+// Tuned so the expected return is well below 1× (real house edge, harder to win).
+const MULTIPLIERS = [9, 3, 1.5, 0.5, 0.2, 0, 0.2, 0.5, 1.5, 3, 9];
 
 const WIDTH = 320;
-const HEIGHT = 440;
+const HEIGHT = 460;
 const PEG_RADIUS = 3.5;
 const BALL_RADIUS = 7;
 
-// Uniform colors — every bucket uses the same purple, every number is white.
-const BUCKET_FILL = 'rgba(110, 60, 220, 0.25)';
+// Brand palette ------------------------------------------------------------
+// Pegs start dark blue and flash to brand purple on hit.
+const PEG_IDLE_FILL = 'hsl(225 75% 35%)';
+const PEG_IDLE_GLOW = 'rgba(40, 70, 180, 0.55)';
+const PEG_HIT_FILL = 'hsl(265 90% 60%)';
+const PEG_HIT_GLOW = 'rgba(180, 80, 255, 0.9)';
+
+const BUCKET_FILL = 'rgba(110, 60, 220, 0.22)';
 const BUCKET_STROKE = 'hsl(265 85% 65%)';
+const BUCKET_WALL = 'hsl(265 85% 65%)';
 const BUCKET_TEXT = '#ffffff';
+
+const BUCKET_AREA_HEIGHT = 60;
+const BUCKET_TOP_Y = HEIGHT - BUCKET_AREA_HEIGHT;
+const BUCKET_FLOOR_Y = HEIGHT - 6;
 
 function buildPegs() {
   const pegs = [];
   const topPad = 40;
-  const rowGap = (HEIGHT - topPad - 80) / ROWS;
+  const rowGap = (HEIGHT - topPad - BUCKET_AREA_HEIGHT - 30) / ROWS;
   for (let r = 0; r < ROWS; r++) {
     const count = r + 3;
     const colGap = WIDTH / (count + 1);
@@ -37,6 +49,9 @@ function buildPegs() {
 }
 
 const PEGS = buildPegs();
+const BUCKET_WIDTH = WIDTH / MULTIPLIERS.length;
+// X positions of the bucket-separator walls (vertical lines).
+const WALL_XS = Array.from({ length: MULTIPLIERS.length + 1 }, (_, i) => i * BUCKET_WIDTH);
 
 export default function NeonPlinko({ profile, refreshProfile, lang }) {
   const canvasRef = useRef(null);
@@ -74,37 +89,58 @@ export default function NeonPlinko({ profile, refreshProfile, lang }) {
       ctx.stroke();
     }
 
-    // Pegs
+    // Pegs — dark blue by default, brand purple flash when hit.
     const now = performance.now();
     PEGS.forEach((p, idx) => {
       const hitAt = hits[idx];
       const sinceHit = hitAt ? now - hitAt : Infinity;
-      const glow = sinceHit < 220 ? 1 - sinceHit / 220 : 0;
+      const glow = sinceHit < 320 ? 1 - sinceHit / 320 : 0;
+      const ever = !!hitAt;
       ctx.beginPath();
-      ctx.arc(p.x, p.y, PEG_RADIUS + glow * 1.5, 0, Math.PI * 2);
-      ctx.fillStyle = glow > 0 ? `rgba(0,229,204,${0.4 + glow * 0.6})` : 'rgba(180,80,255,0.85)';
-      ctx.shadowColor = glow > 0 ? 'rgba(0,229,204,0.9)' : 'rgba(180,80,255,0.6)';
-      ctx.shadowBlur = 8 + glow * 12;
+      ctx.arc(p.x, p.y, PEG_RADIUS + glow * 1.4, 0, Math.PI * 2);
+      if (ever) {
+        ctx.fillStyle = PEG_HIT_FILL;
+        ctx.shadowColor = PEG_HIT_GLOW;
+        ctx.shadowBlur = 10 + glow * 14;
+      } else {
+        ctx.fillStyle = PEG_IDLE_FILL;
+        ctx.shadowColor = PEG_IDLE_GLOW;
+        ctx.shadowBlur = 8;
+      }
       ctx.fill();
       ctx.shadowBlur = 0;
     });
 
-    // Buckets — uniform color, uniform white text.
-    const bucketWidth = WIDTH / MULTIPLIERS.length;
-    const bucketY = HEIGHT - 50;
+    // Bucket walls + floor — the ball can actually bounce off these.
+    ctx.strokeStyle = BUCKET_WALL;
+    ctx.lineWidth = 2;
+    ctx.shadowColor = BUCKET_STROKE;
+    ctx.shadowBlur = 6;
+    // Floor line
+    ctx.beginPath();
+    ctx.moveTo(0, BUCKET_FLOOR_Y);
+    ctx.lineTo(WIDTH, BUCKET_FLOOR_Y);
+    ctx.stroke();
+    // Vertical walls between buckets
+    WALL_XS.forEach((wx) => {
+      ctx.beginPath();
+      ctx.moveTo(wx, BUCKET_TOP_Y);
+      ctx.lineTo(wx, BUCKET_FLOOR_Y);
+      ctx.stroke();
+    });
+    ctx.shadowBlur = 0;
+
+    // Bucket bodies (fill + multiplier labels)
     MULTIPLIERS.forEach((m, i) => {
-      const x = i * bucketWidth;
+      const x = i * BUCKET_WIDTH;
       ctx.fillStyle = BUCKET_FILL;
-      ctx.strokeStyle = BUCKET_STROKE;
-      ctx.lineWidth = 1;
-      ctx.fillRect(x + 2, bucketY, bucketWidth - 4, 40);
-      ctx.strokeRect(x + 2, bucketY, bucketWidth - 4, 40);
+      ctx.fillRect(x + 1, BUCKET_TOP_Y + 1, BUCKET_WIDTH - 2, BUCKET_AREA_HEIGHT - 7);
       ctx.fillStyle = BUCKET_TEXT;
       ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
       ctx.shadowColor = BUCKET_STROKE;
       ctx.shadowBlur = 6;
-      ctx.fillText(`×${m}`, x + bucketWidth / 2, bucketY + 25);
+      ctx.fillText(`×${m}`, x + BUCKET_WIDTH / 2, BUCKET_TOP_Y + BUCKET_AREA_HEIGHT / 2 + 3);
       ctx.shadowBlur = 0;
     });
 
@@ -156,10 +192,9 @@ export default function NeonPlinko({ profile, refreshProfile, lang }) {
     let vy = 0;
     const gravity = 0.085;
     const damping = 0.62;
+    const wallDamping = 0.55;
     const airFriction = 0.992;
     const trail = [];
-
-    const bucketY = HEIGHT - 50;
 
     const step = () => {
       vy += gravity;
@@ -187,7 +222,7 @@ export default function NeonPlinko({ profile, refreshProfile, lang }) {
         }
       }
 
-      // Walls
+      // Outer walls
       if (x < BALL_RADIUS) {
         x = BALL_RADIUS;
         vx = Math.abs(vx) * damping;
@@ -197,16 +232,47 @@ export default function NeonPlinko({ profile, refreshProfile, lang }) {
         vx = -Math.abs(vx) * damping;
       }
 
+      // Once the ball enters the bucket area, it must stay inside a single bucket.
+      if (y + BALL_RADIUS > BUCKET_TOP_Y) {
+        // Pick the bucket the ball center belongs to.
+        const bucketIdx = Math.min(
+          MULTIPLIERS.length - 1,
+          Math.max(0, Math.floor(x / BUCKET_WIDTH)),
+        );
+        const leftWall = WALL_XS[bucketIdx];
+        const rightWall = WALL_XS[bucketIdx + 1];
+        // Bounce off the bucket's left/right walls so the ball can't slip out.
+        if (x - BALL_RADIUS < leftWall) {
+          x = leftWall + BALL_RADIUS;
+          vx = Math.abs(vx) * wallDamping;
+        }
+        if (x + BALL_RADIUS > rightWall) {
+          x = rightWall - BALL_RADIUS;
+          vx = -Math.abs(vx) * wallDamping;
+        }
+        // Bounce off the floor a couple of times before settling.
+        if (y + BALL_RADIUS > BUCKET_FLOOR_Y) {
+          y = BUCKET_FLOOR_Y - BALL_RADIUS;
+          vy = -Math.abs(vy) * wallDamping;
+          // Kill horizontal energy too — friction with the floor.
+          vx *= 0.7;
+        }
+      }
+
       trail.push({ x, y });
       if (trail.length > 8) trail.shift();
 
       draw({ x, y, trail }, hitPegsRef.current);
       setHitPegs({ ...hitPegsRef.current });
 
-      if (y >= bucketY + 15) {
-        // Determine bucket
-        const bucketWidth = WIDTH / MULTIPLIERS.length;
-        const idx = Math.min(MULTIPLIERS.length - 1, Math.max(0, Math.floor(x / bucketWidth)));
+      // Settle once the ball is in the bucket area AND moving slowly enough.
+      const slow = Math.abs(vy) < 0.6 && Math.abs(vx) < 0.4;
+      const onFloor = y + BALL_RADIUS >= BUCKET_FLOOR_Y - 0.5;
+      if (y > BUCKET_TOP_Y && slow && onFloor) {
+        const idx = Math.min(
+          MULTIPLIERS.length - 1,
+          Math.max(0, Math.floor(x / BUCKET_WIDTH)),
+        );
         const mult = MULTIPLIERS[idx];
         const winAmount = Math.round(stake * mult);
 

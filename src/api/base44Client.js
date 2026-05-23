@@ -6,6 +6,7 @@ const TABLE_MAP = {
   CommunityBet: 'community_bets',
   Mission: 'missions',
   UserMission: 'user_missions',
+  ExchangeRequest: 'exchange_requests',
 };
 
 function parseSort(sortStr) {

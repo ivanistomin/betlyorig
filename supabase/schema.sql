@@ -107,6 +107,29 @@ drop trigger if exists set_community_bets_updated on public.community_bets;
 create trigger set_community_bets_updated before update on public.community_bets
   for each row execute function public.set_updated_date();
 
+-- Exchange requests ---------------------------------------------------------
+-- status values: 'pending' | 'approved' | 'rejected'
+create table if not exists public.exchange_requests (
+  id uuid primary key default gen_random_uuid(),
+  user_email text not null,
+  tg_id text,
+  tg_username text,
+  gems_amount numeric not null,
+  ton_amount numeric not null,
+  wallet_address text not null,
+  status text not null default 'pending',
+  rejection_reason text,
+  reviewed_by text,
+  reviewed_at timestamptz,
+  created_date timestamptz not null default now(),
+  updated_date timestamptz not null default now()
+);
+create index if not exists exchange_requests_user_email_idx on public.exchange_requests (user_email);
+create index if not exists exchange_requests_status_idx on public.exchange_requests (status);
+drop trigger if exists set_exchange_requests_updated on public.exchange_requests;
+create trigger set_exchange_requests_updated before update on public.exchange_requests
+  for each row execute function public.set_updated_date();
+
 -- Missions ------------------------------------------------------------------
 create table if not exists public.missions (
   id uuid primary key default gen_random_uuid(),
@@ -144,6 +167,7 @@ alter table public.user_profiles enable row level security;
 alter table public.community_bets enable row level security;
 alter table public.missions enable row level security;
 alter table public.user_missions enable row level security;
+alter table public.exchange_requests enable row level security;
 
 -- Helper to get the logged-in user's email from the JWT.
 create or replace function public.auth_email() returns text language sql stable as $$
@@ -202,6 +226,19 @@ drop policy if exists community_bets_update on public.community_bets;
 create policy community_bets_update on public.community_bets for update
   using (creator_email = public.auth_email() or status = 'approved' or public.is_admin())
   with check (true);
+
+-- Exchange requests: a user can see their own; admins see everything.
+-- Inserts only as oneself; updates only by admins (moderation verdict).
+drop policy if exists exchange_requests_select on public.exchange_requests;
+create policy exchange_requests_select on public.exchange_requests for select
+  using (user_email = public.auth_email() or public.is_admin());
+drop policy if exists exchange_requests_insert on public.exchange_requests;
+create policy exchange_requests_insert on public.exchange_requests for insert
+  with check (user_email = public.auth_email());
+drop policy if exists exchange_requests_update on public.exchange_requests;
+create policy exchange_requests_update on public.exchange_requests for update
+  using (public.is_admin())
+  with check (public.is_admin());
 
 -- Missions: world-readable catalog, writes only via service role.
 drop policy if exists missions_select on public.missions;

@@ -895,7 +895,7 @@ function DailyLimitReached({ lang, used, limit, profile, onBack }) {
                 : 'You have used all your bets for today. Invite more friends to unlock additional daily bets.'}
             </p>
             <p className="text-xs text-neon-cyan font-heading font-semibold">
-              {lang === 'ru' ? '1 друг = +1 ставка в день' : '1 friend = +1 bet per day'}
+              {lang === 'ru' ? 'Один друг = одна ставка в день' : 'One friend = one bet per day'}
             </p>
           </div>
 

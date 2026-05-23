@@ -43,15 +43,21 @@ export default function Exchange() {
 
     setLoading(true);
     try {
-      await db.entities.ExchangeRequest.create({
-        user_email: profile.user_email,
-        tg_id: profile.tg_id ? String(profile.tg_id) : null,
-        tg_username: profile.tg_username || null,
-        gems_amount: gemsAmount,
-        ton_amount: parseFloat(tonOut),
-        wallet_address: walletAddress.trim(),
-        status: 'pending',
-      });
+      // Save the request to the moderation queue. If the table doesn't exist
+      // yet (e.g. migration not applied), don't block the user — log and continue.
+      try {
+        await db.entities.ExchangeRequest.create({
+          user_email: profile.user_email,
+          tg_id: profile.tg_id ? String(profile.tg_id) : null,
+          tg_username: profile.tg_username || null,
+          gems_amount: gemsAmount,
+          ton_amount: parseFloat(tonOut),
+          wallet_address: walletAddress.trim(),
+          status: 'pending',
+        });
+      } catch (reqErr) {
+        console.warn('Failed to record exchange request:', reqErr);
+      }
 
       try {
         await db.functions.invoke('sendTelegramNotification', {
@@ -71,7 +77,8 @@ export default function Exchange() {
       refreshProfile();
       toast.success(`Exchange request sent! ${gemsAmount} 💎 → ${tonOut} TON`);
     } catch (e) {
-      toast.error('Error processing request');
+      console.error('Exchange failed:', e);
+      toast.error(e?.message || 'Error processing request');
     }
     setLoading(false);
   };

@@ -3,10 +3,27 @@ import { useState } from 'react';
 import { useProfile } from '@/lib/useProfile';
 import { useTelegram } from '@/lib/useTelegram';
 import { useLang } from '@/lib/i18n';
-import { ArrowLeft, Gift, Lock, CheckCircle } from 'lucide-react';
+import { ArrowLeft, Gift, Lock, CheckCircle, Shirt } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { db } from '@/api/base44Client';
 import { toast } from 'sonner';
+import { useAvatar } from '@/lib/useAvatar';
+import { CHARACTERS } from '@/components/avatar/AvatarCharacters';
+import { ITEMS } from '@/components/avatar/AvatarItems';
+
+// Battle-pass level → avatar unlock. The reward stays a "free claim" — claiming
+// it also unlocks the corresponding avatar piece and auto-equips it via the
+// slot rule encoded in ITEMS[id].slot.
+const AVATAR_UNLOCKS = {
+  3:  { kind: 'character', id: 'capybara'      },
+  9:  { kind: 'character', id: 'raccoon'       },
+  17: { kind: 'character', id: 'monkey'        },
+  23: { kind: 'item',      id: 'hoodie_purple' },
+  29: { kind: 'item',      id: 'cap_purple'    },
+  37: { kind: 'item',      id: 'glasses_neon'  },
+  44: { kind: 'item',      id: 'jacket_gold'   },
+  49: { kind: 'item',      id: 'headphones'    },
+};
 
 const REWARDS = [
   { level: 1,  emoji: '💎', titleRu: '200 GEMS',              titleEn: '200 GEMS',              type: 'gems'   },
@@ -70,12 +87,19 @@ const TYPE_CONFIG = {
   jackpot: { color: '#F5C842', glow: 'rgba(245,200,66,0.7)', label: 'JACKPOT' },
 };
 
-function RewardRow({ reward, userLevel, isLast, claimed, onClaim, claiming }) {
+function RewardRow({ reward, userLevel, isLast, claimed, onClaim, claiming, lang, avatarApi }) {
   const cfg = TYPE_CONFIG[reward.type];
   const unlocked = userLevel >= reward.level;
   const isCurrent = userLevel + 1 === reward.level;
   const isJackpot = reward.type === 'jackpot';
   const canClaim = unlocked && !claimed;
+  const cosmetic = AVATAR_UNLOCKS[reward.level];
+  const item = cosmetic?.kind === 'item' ? ITEMS[cosmetic.id] : null;
+  const character = cosmetic?.kind === 'character' ? CHARACTERS[cosmetic.id] : null;
+  const equippedHere =
+    item && avatarApi?.avatar?.equipped?.[item.slot] === item.id;
+  const activeCharacter =
+    character && avatarApi?.avatar?.character === character.id;
 
   return (
     <div className="flex items-stretch gap-0">
@@ -196,8 +220,37 @@ function RewardRow({ reward, userLevel, isLast, claimed, onClaim, claiming }) {
             )}
             {claimed && (
               <p className="text-[10px] mt-1" style={{ color: `${cfg.color}aa` }}>
-                Получено
+                {lang === 'ru' ? 'Получено' : 'Claimed'}
               </p>
+            )}
+            {/* Claimed cosmetics get an Equip / Choose button */}
+            {claimed && (item || character) && (
+              <button
+                onClick={() => {
+                  if (item) avatarApi?.equip?.(item.id);
+                  else if (character) avatarApi?.setCharacter?.(character.id);
+                }}
+                disabled={equippedHere || activeCharacter}
+                className="mt-2 inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-[11px] font-heading font-bold disabled:opacity-60"
+                style={{
+                  background:
+                    equippedHere || activeCharacter
+                      ? 'rgba(0,229,204,0.18)'
+                      : 'linear-gradient(135deg, hsl(265 90% 60%), hsl(180 80% 50%))',
+                  color: equippedHere || activeCharacter ? '#00E5CC' : '#fff',
+                  border:
+                    equippedHere || activeCharacter
+                      ? '1px solid rgba(0,229,204,0.5)'
+                      : '1px solid transparent',
+                }}
+              >
+                <Shirt className="w-3 h-3" />
+                {equippedHere || activeCharacter
+                  ? lang === 'ru' ? 'Надето' : 'Equipped'
+                  : item
+                  ? lang === 'ru' ? 'Надеть' : 'Equip'
+                  : lang === 'ru' ? 'Выбрать' : 'Select'}
+              </button>
             )}
           </div>
 
@@ -242,6 +295,7 @@ export default function BattlePass() {
   const { tgUser } = useTelegram();
   const { profile, refreshProfile } = useProfile(tgUser);
   const { lang } = useLang();
+  const avatarApi = useAvatar();
   const [claimingLevel, setClaimingLevel] = useState(null);
   const userLevel = profile?.level || 1;
   const xp = profile?.xp || 0;
@@ -270,6 +324,16 @@ export default function BattlePass() {
       }
       await db.entities.UserProfile.update(profile.id, updates);
       await refreshProfile();
+
+      // If this level unlocks an avatar piece, register it locally and
+      // auto-equip (items go into their declared slot; characters become active).
+      const cosmetic = AVATAR_UNLOCKS[reward.level];
+      if (cosmetic) {
+        avatarApi.unlock(cosmetic.id);
+        if (cosmetic.kind === 'item') avatarApi.equip(cosmetic.id);
+        else if (cosmetic.kind === 'character') avatarApi.setCharacter(cosmetic.id);
+      }
+
       toast.success(lang === 'ru' ? `Награда за уровень ${reward.level} получена!` : `Reward for level ${reward.level} claimed!`);
     } catch (e) {
 
@@ -385,6 +449,8 @@ export default function BattlePass() {
             claimed={claimedRewards.includes(reward.level)}
             onClaim={handleClaim}
             claiming={claimingLevel === reward.level}
+            lang={lang}
+            avatarApi={avatarApi}
           />
         ))}
 

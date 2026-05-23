@@ -6,8 +6,9 @@ import { toast } from 'sonner';
 import { applyGameResult, validateStake } from './useGameBet';
 import StakeBar from './StakeBar';
 
-// 14 rows of pegs, 13 buckets at the bottom — denser obstacle field.
-const ROWS = 14;
+// Triangular peg field: 2 pegs at the top, 13 pegs at the bottom,
+// laid out on an equilateral lattice so the silhouette is a real plinko triangle.
+const ROWS = 12;
 // Bucket multipliers — edges pay big, center is mostly a loss.
 // Tuned so the expected return is well below 1× (real house edge, harder to win).
 const MULTIPLIERS = [12, 5, 2, 1, 0.4, 0.2, 0, 0.2, 0.4, 1, 2, 5, 12];
@@ -15,7 +16,7 @@ const MULTIPLIERS = [12, 5, 2, 1, 0.4, 0.2, 0, 0.2, 0.4, 1, 2, 5, 12];
 const WIDTH = 320;
 const HEIGHT = 520;
 const PEG_RADIUS = 3.5;
-const BALL_RADIUS = 6.5;
+const BALL_RADIUS = 6;
 
 // Brand palette ------------------------------------------------------------
 // Pegs start dark blue and flash to brand purple on hit.
@@ -35,14 +36,18 @@ const BUCKET_FLOOR_Y = HEIGHT - 6;
 
 function buildPegs() {
   const pegs = [];
-  const topPad = 40;
-  const rowGap = (HEIGHT - topPad - BUCKET_AREA_HEIGHT - 30) / ROWS;
+  const topPad = 50;
+  const bottomCount = ROWS + 1; // 13 pegs along the bottom row
+  // Spacing wide enough that a ball (diameter ~12) passes freely between pegs.
+  const hSpacing = (WIDTH - 18) / (bottomCount - 1);
+  const rowGap = (HEIGHT - topPad - BUCKET_AREA_HEIGHT - 30) / (ROWS - 1);
   for (let r = 0; r < ROWS; r++) {
-    const count = r + 3;
-    const colGap = WIDTH / (count + 1);
+    const count = r + 2; // 2 at the top → 13 at the bottom
     const y = topPad + r * rowGap;
+    const rowWidth = (count - 1) * hSpacing;
+    const startX = (WIDTH - rowWidth) / 2;
     for (let c = 0; c < count; c++) {
-      pegs.push({ x: colGap * (c + 1), y });
+      pegs.push({ x: startX + c * hSpacing, y });
     }
   }
   return pegs;
@@ -190,18 +195,34 @@ export default function NeonPlinko({ profile, refreshProfile, lang }) {
     let y = 10;
     let vx = (Math.random() - 0.5) * 0.35;
     let vy = 0;
-    const gravity = 0.085;
+    const gravity = 0.09;
     const damping = 0.62;
     const wallDamping = 0.55;
     const airFriction = 0.992;
     const trail = [];
+    let frames = 0;
+    let stallFrames = 0;
 
     const step = () => {
+      frames++;
       vy += gravity;
       vx *= airFriction;
       vy *= airFriction;
       x += vx;
       y += vy;
+
+      // Anti-stall: if the ball stops moving downward for too long (stuck
+      // between two pegs), give it a tiny nudge so it keeps falling.
+      if (Math.abs(vy) < 0.25 && y < BUCKET_TOP_Y) {
+        stallFrames++;
+        if (stallFrames > 18) {
+          vy += 0.9;
+          vx += (Math.random() - 0.5) * 0.6;
+          stallFrames = 0;
+        }
+      } else {
+        stallFrames = 0;
+      }
 
       // Collide with pegs
       for (let i = 0; i < PEGS.length; i++) {
@@ -265,10 +286,12 @@ export default function NeonPlinko({ profile, refreshProfile, lang }) {
       draw({ x, y, trail }, hitPegsRef.current);
       setHitPegs({ ...hitPegsRef.current });
 
-      // Settle once the ball is in the bucket area AND moving slowly enough.
+      // Settle once the ball is in the bucket area AND moving slowly enough,
+      // or after a hard frame cap so a freak physics state still resolves.
       const slow = Math.abs(vy) < 0.6 && Math.abs(vx) < 0.4;
       const onFloor = y + BALL_RADIUS >= BUCKET_FLOOR_Y - 0.5;
-      if (y > BUCKET_TOP_Y && slow && onFloor) {
+      const timedOut = frames > 1200 && y > BUCKET_TOP_Y;
+      if ((y > BUCKET_TOP_Y && slow && onFloor) || timedOut) {
         const idx = Math.min(
           MULTIPLIERS.length - 1,
           Math.max(0, Math.floor(x / BUCKET_WIDTH)),

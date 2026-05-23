@@ -6,15 +6,20 @@ import { toast } from 'sonner';
 import { applyGameResult, validateStake } from './useGameBet';
 import StakeBar from './StakeBar';
 
-// 6 rows of pegs, 7 buckets at the bottom
-const ROWS = 8;
-// Bucket multipliers — edges pay more, center pays less; tilted slightly to house edge
-const MULTIPLIERS = [5, 2, 1.2, 0.5, 0.5, 1.2, 2, 5, 9];
+// 10 rows of pegs, 11 buckets at the bottom — more bounces, longer fall.
+const ROWS = 10;
+// Bucket multipliers — edges pay more, center pays less; tuned to ~7% house edge.
+const MULTIPLIERS = [15, 4, 2, 1.2, 0.7, 0.3, 0.7, 1.2, 2, 4, 15];
 
 const WIDTH = 320;
-const HEIGHT = 380;
+const HEIGHT = 440;
 const PEG_RADIUS = 3.5;
 const BALL_RADIUS = 7;
+
+// Uniform colors — every bucket uses the same purple, every number is white.
+const BUCKET_FILL = 'rgba(110, 60, 220, 0.25)';
+const BUCKET_STROKE = 'hsl(265 85% 65%)';
+const BUCKET_TEXT = '#ffffff';
 
 function buildPegs() {
   const pegs = [];
@@ -84,23 +89,21 @@ export default function NeonPlinko({ profile, refreshProfile, lang }) {
       ctx.shadowBlur = 0;
     });
 
-    // Buckets
+    // Buckets — uniform color, uniform white text.
     const bucketWidth = WIDTH / MULTIPLIERS.length;
     const bucketY = HEIGHT - 50;
     MULTIPLIERS.forEach((m, i) => {
       const x = i * bucketWidth;
-      const color =
-        m >= 5 ? 'hsl(45 95% 60%)' : m >= 2 ? 'hsl(280 95% 65%)' : m >= 1 ? 'hsl(195 95% 60%)' : 'hsl(0 80% 55%)';
-      ctx.fillStyle = color + '22';
-      ctx.strokeStyle = color;
+      ctx.fillStyle = BUCKET_FILL;
+      ctx.strokeStyle = BUCKET_STROKE;
       ctx.lineWidth = 1;
       ctx.fillRect(x + 2, bucketY, bucketWidth - 4, 40);
       ctx.strokeRect(x + 2, bucketY, bucketWidth - 4, 40);
-      ctx.fillStyle = color;
-      ctx.font = 'bold 11px sans-serif';
+      ctx.fillStyle = BUCKET_TEXT;
+      ctx.font = 'bold 10px sans-serif';
       ctx.textAlign = 'center';
-      ctx.shadowColor = color;
-      ctx.shadowBlur = 8;
+      ctx.shadowColor = BUCKET_STROKE;
+      ctx.shadowBlur = 6;
       ctx.fillText(`×${m}`, x + bucketWidth / 2, bucketY + 25);
       ctx.shadowBlur = 0;
     });
@@ -149,16 +152,19 @@ export default function NeonPlinko({ profile, refreshProfile, lang }) {
 
     let x = WIDTH / 2 + (Math.random() - 0.5) * 12;
     let y = 10;
-    let vx = (Math.random() - 0.5) * 0.4;
+    let vx = (Math.random() - 0.5) * 0.35;
     let vy = 0;
-    const gravity = 0.18;
-    const damping = 0.55;
+    const gravity = 0.085;
+    const damping = 0.62;
+    const airFriction = 0.992;
     const trail = [];
 
     const bucketY = HEIGHT - 50;
 
     const step = () => {
       vy += gravity;
+      vx *= airFriction;
+      vy *= airFriction;
       x += vx;
       y += vy;
 

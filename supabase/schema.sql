@@ -227,26 +227,36 @@ create policy user_missions_delete on public.user_missions for delete
 -- (Run from the Supabase SQL editor as the service role.)
 
 -- ---------------------------------------------------------------------------
--- Storage: private bucket for proof files (only accessible via signed URLs)
--- Delete old public bucket policies if exist
-drop policy if exists "Allow public read" on storage.objects;
+-- Storage: private bucket for proof files.
+-- Privacy model:
+--   • Users upload to the "proofs" bucket but cannot read or list any file.
+--   • Moderators read proof files only via signed URLs generated server-side
+--     by /api/getProofUrl (service role bypasses RLS, so no SELECT policy
+--     is needed for moderators).
+--   • After a moderator approves or rejects a bet, /api/moderateBet deletes
+--     the file from storage with the service role and nulls bets.proof_url.
+-- ---------------------------------------------------------------------------
 
--- Create private proofs bucket
+-- Delete old public bucket policies if they exist
+drop policy if exists "Allow public read" on storage.objects;
+drop policy if exists "Proofs: authenticated uploads" on storage.objects;
+drop policy if exists "Proofs: authenticated select" on storage.objects;
+drop policy if exists "Proofs: authenticated delete own" on storage.objects;
+
+-- Create private proofs bucket (or make sure existing one is private)
 insert into storage.buckets (id, name, public)
 values ('proofs', 'proofs', false)
-on conflict (id) do nothing;
+on conflict (id) do update set public = false;
 
--- Authenticated users can upload their proof files
-create policy if not exists "Proofs: authenticated uploads"
+-- Authenticated users can upload (writes) into the proofs bucket only.
+create policy "Proofs: authenticated uploads"
   on storage.objects for insert to authenticated
   with check (bucket_id = 'proofs');
 
--- Authenticated users can read (used for signed URLs generation)
-create policy if not exists "Proofs: authenticated select"
-  on storage.objects for select to authenticated
-  using (bucket_id = 'proofs');
+-- Nobody can SELECT through RLS — moderators read via signed URLs
+-- generated on the server with the service-role key.
+-- (No SELECT policy intentionally — service role bypasses RLS.)
 
--- Users can delete their own files
-create policy if not exists "Proofs: authenticated delete own"
-  on storage.objects for delete to authenticated
-  using (bucket_id = 'proofs' and (select auth.uid()) = owner);
+-- Nobody can DELETE through RLS — /api/moderateBet deletes via the
+-- service-role key after a moderation verdict.
+-- (No DELETE policy intentionally — service role bypasses RLS.)

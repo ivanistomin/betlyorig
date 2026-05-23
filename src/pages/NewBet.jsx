@@ -24,7 +24,6 @@ import {
   calculateReward,
   validateGoalTitle,
   getAllowedProofTypes,
-  normalizeProofType,
 } from '@/lib/gameConfig';
 import { BET_TEMPLATES } from '@/lib/betTemplates';
 import GemsBadge from '@/components/common/GemsBadge';

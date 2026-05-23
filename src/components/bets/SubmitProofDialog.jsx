@@ -82,16 +82,18 @@ export default function SubmitProofDialog({ open, bet, onClose, onConfirm }) {
       return;
     }
     setSubmitting(true);
+    setUploading(true);
     try {
-      setUploading(true);
       const { file_url } = await db.integrations.Core.UploadFile({ file });
       setUploading(false);
       if (!file_url) {
         toast.error(lang === 'ru' ? 'Не удалось загрузить файл' : 'File upload failed');
-        setSubmitting(false);
         return;
       }
       await onConfirm({ note, url: file_url });
+    } catch (err) {
+      console.error('[SubmitProofDialog]', err);
+      toast.error(lang === 'ru' ? 'Ошибка отправки: ' + err.message : 'Send error: ' + err.message);
     } finally {
       setSubmitting(false);
       setUploading(false);

@@ -116,36 +116,30 @@ export default function NewBet() {
     setStep((s) => Math.min(STEPS.length - 1, s + 1));
   };
 
-  // ── Step actions ────────────────────────────────────────────────────────────
-  const pickCategory = (key) => {
-    setForm((p) => ({
-      ...p,
-      category: key,
-      title: '',
-      proof_type: key === 'custom' ? normalizeProofType('custom', 'photo') : '',
-    }));
-    setGoalError('');
-  };
-
-  const pickTemplate = (tpl) => {
-    setForm((p) => ({
-      ...p,
-      title: lang === 'ru' ? tpl.titleRu : tpl.titleEn,
-      proof_type: tpl.proof_type,
-    }));
-    setGoalError('');
-  };
-
-  const pickCustomInTemplates = () => {
-    setForm((p) => ({
-      ...p,
-      title: '',
-      proof_type:
-        p.proof_type && allowedProofTypes.includes(p.proof_type)
-          ? p.proof_type
-          : allowedProofTypes[0],
-    }));
-  };
+  const renderContinueButton = () => (
+    <div className="pt-3 pb-24">
+      {step < STEPS.length - 1 ? (
+        <Button
+          onClick={goNext}
+          disabled={!canContinue()}
+          className="w-full h-12 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading font-semibold text-base rounded-xl gap-2"
+        >
+          {lang === 'ru' ? 'Продолжить' : 'Continue'}
+          <ArrowRight className="w-4 h-4" />
+        </Button>
+      ) : (
+        <Button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="w-full h-12 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading font-semibold text-base rounded-xl"
+        >
+          {submitting
+            ? t('placing')
+            : `${t('place_bet_btn')} — ${form.stake_amount} GEMS`}
+        </Button>
+      )}
+    </div>
+  );
 
   // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
@@ -276,28 +270,8 @@ export default function NewBet() {
         </motion.div>
       </AnimatePresence>
 
-      <div className="fixed bottom-0 left-0 right-0 z-[60] px-4 pb-24 pt-3 bg-gradient-to-t from-background via-background to-transparent">
-        {step < STEPS.length - 1 ? (
-          <Button
-            onClick={goNext}
-            disabled={!canContinue()}
-            className="w-full h-12 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading font-semibold text-base rounded-xl gap-2"
-          >
-            {lang === 'ru' ? 'Продолжить' : 'Continue'}
-            <ArrowRight className="w-4 h-4" />
-          </Button>
-        ) : (
-          <Button
-            onClick={handleSubmit}
-            disabled={submitting}
-            className="w-full h-12 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading font-semibold text-base rounded-xl"
-          >
-            {submitting
-              ? t('placing')
-              : `${t('place_bet_btn')} — ${form.stake_amount} GEMS`}
-          </Button>
-        )}
-      </div>
+      {/* Continue / Submit button - in flow, with space for bottom nav */}
+      {renderContinueButton()}
     </div>
   );
 }
@@ -364,7 +338,6 @@ function StepCategory({ lang, value, onPick }) {
                   </p>
                 )}
               </div>
-              {selected && <CheckCircle2 className="w-4 h-4 text-primary ml-auto shrink-0" />}
             </motion.button>
           );
         })}

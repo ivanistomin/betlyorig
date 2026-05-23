@@ -76,6 +76,7 @@ create table if not exists public.user_profiles (
   updated_date timestamptz not null default now()
 );
 alter table public.user_profiles add column if not exists is_admin boolean default false;
+alter table public.user_profiles add column if not exists claimed_battle_pass_rewards integer[] default '{}';
 create index if not exists user_profiles_tg_id_idx on public.user_profiles (tg_id);
 create index if not exists user_profiles_is_admin_idx on public.user_profiles (is_admin)
   where is_admin = true;
@@ -221,7 +222,21 @@ drop policy if exists user_missions_delete on public.user_missions;
 create policy user_missions_delete on public.user_missions for delete
   using (user_email = public.auth_email());
 
--- ---------------------------------------------------------------------------
 -- How to promote a user to moderator/admin:
 --   update public.user_profiles set is_admin = true where user_email = 'tg_<TG_ID>@betly.app';
 -- (Run from the Supabase SQL editor as the service role.)
+
+-- ---------------------------------------------------------------------------
+-- Storage bucket for proof uploads
+insert into storage.buckets (id, name, public) values ('public', 'public', true)
+  on conflict (id) do nothing;
+
+-- Allow authenticated users to upload files to the public bucket
+create policy if not exists "Allow authenticated uploads"
+  on storage.objects for insert to authenticated with check (bucket_id = 'public');
+
+create policy if not exists "Allow public read"
+  on storage.objects for select to anon using (bucket_id = 'public');
+
+create policy if not exists "Allow authenticated users to delete their own uploads"
+  on storage.objects for delete to authenticated using (bucket_id = 'public' and (select auth.uid()) = owner);

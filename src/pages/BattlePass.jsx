@@ -245,7 +245,9 @@ export default function BattlePass() {
   const [claimingLevel, setClaimingLevel] = useState(null);
   const userLevel = profile?.level || 1;
   const xp = profile?.xp || 0;
-  const claimedRewards = profile?.claimed_battle_pass_rewards || [];
+  const claimedRewards = Array.isArray(profile?.claimed_battle_pass_rewards)
+    ? profile.claimed_battle_pass_rewards
+    : [];
 
   const xpForLevel = userLevel * 100;
   const progress = Math.min((xp / xpForLevel) * 100, 100);

@@ -254,7 +254,10 @@ export default function BattlePass() {
   const unlockedCount = REWARDS.filter(r => userLevel >= r.level).length;
 
   const handleClaim = async (reward) => {
-    if (!profile) return;
+    if (!profile) {
+      toast.error(lang === 'ru' ? 'Профиль ещё загружается, попробуй ещё раз' : 'Profile is still loading, try again');
+      return;
+    }
     setClaimingLevel(reward.level);
     try {
       const newClaimed = [...claimedRewards, reward.level];
@@ -266,10 +269,12 @@ export default function BattlePass() {
         updates.total_gems_earned = (profile.total_gems_earned || 0) + gemsAmount;
       }
       await db.entities.UserProfile.update(profile.id, updates);
+      await refreshProfile();
       toast.success(lang === 'ru' ? `Награда за уровень ${reward.level} получена!` : `Reward for level ${reward.level} claimed!`);
-      refreshProfile();
     } catch (e) {
-      toast.error(e.message || 'Failed to claim reward');
+
+      console.error('[BattlePass claim]', e);
+      toast.error(e?.message || (lang === 'ru' ? 'Не удалось забрать награду' : 'Failed to claim reward'));
     } finally {
       setClaimingLevel(null);
     }

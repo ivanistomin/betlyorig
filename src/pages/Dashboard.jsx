@@ -1,28 +1,65 @@
 
 import { db } from '@/api/base44Client';
 import { Link } from 'react-router-dom';
+import { useState } from 'react';
 
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Target, ChevronRight, Users, Trophy } from 'lucide-react';
 import { useTelegram } from '@/lib/useTelegram';
 import { useProfile } from '@/lib/useProfile';
 import { useLang } from '@/lib/i18n';
+import { toast } from 'sonner';
 import TgHeader from '@/components/layout/TgHeader';
 import StatCard from '@/components/common/StatCard';
 import LevelProgress from '@/components/common/LevelProgress';
 import BetCard from '@/components/bets/BetCard';
+import SubmitProofDialog from '@/components/bets/SubmitProofDialog';
 
 export default function Dashboard() {
   const { tgUser, isReady } = useTelegram();
-  const { profile, user, loading: profileLoading } = useProfile(tgUser);
+  const { profile, user, loading: profileLoading, refreshProfile } = useProfile(tgUser);
   const { t, lang } = useLang();
+  const qc = useQueryClient();
+  const [proofTarget, setProofTarget] = useState(null);
 
   const { data: activeBets = [], isLoading: betsLoading } = useQuery({
     queryKey: ['active-bets', user?.email],
     queryFn: () => db.entities.Bet.filter({ user_email: user.email, status: 'active' }, '-created_date', 5),
     enabled: !!user,
   });
+
+  const handleSubmitProof = (bet) => setProofTarget(bet);
+
+  const handleProofConfirm = async ({ note, url }) => {
+    if (!proofTarget) return;
+    await db.entities.Bet.update(proofTarget.id, {
+      status: 'pending_review',
+      proof_note: note?.trim() || null,
+      proof_url: url?.trim() || null,
+      proof_submitted_at: new Date().toISOString(),
+      rejection_reason: null,
+    });
+    toast.success(lang === 'ru' ? '📤 Отправлено на проверку (до 12 ч)' : '📤 Sent for review (up to 12h)');
+    setProofTarget(null);
+    qc.invalidateQueries({ queryKey: ['active-bets'] });
+    qc.invalidateQueries({ queryKey: ['my-bets'] });
+    qc.invalidateQueries({ queryKey: ['moderation-bets'] });
+  };
+
+  const handleFail = async (bet) => {
+    if (!profile) return;
+    await db.entities.Bet.update(bet.id, { status: 'failed' });
+    await db.entities.UserProfile.update(profile.id, {
+      total_gems_lost: (profile.total_gems_lost || 0) + bet.stake_amount,
+      bets_lost: (profile.bets_lost || 0) + 1,
+      current_streak: 0,
+    });
+    toast.error(`-${bet.stake_amount} 💎 ${lang === 'ru' ? 'потеряно. Серия сброшена.' : 'lost. Streak reset.'}`);
+    qc.invalidateQueries({ queryKey: ['active-bets'] });
+    qc.invalidateQueries({ queryKey: ['my-bets'] });
+    refreshProfile();
+  };
 
   if (!isReady || profileLoading) {
     return (
@@ -157,7 +194,13 @@ export default function Dashboard() {
             ) : (
               <AnimatePresence>
                 {activeBets.slice(0, 3).map((bet) => (
-                  <BetCard key={bet.id} bet={bet} compact />
+                  <BetCard
+                    key={bet.id}
+                    bet={bet}
+                    compact
+                    onComplete={handleSubmitProof}
+                    onFail={handleFail}
+                  />
                 ))}
               </AnimatePresence>
             )}
@@ -175,6 +218,13 @@ export default function Dashboard() {
           </p>
         </motion.div>
       </div>
+
+      <SubmitProofDialog
+        open={!!proofTarget}
+        bet={proofTarget}
+        onClose={() => setProofTarget(null)}
+        onConfirm={handleProofConfirm}
+      />
     </div>
   );
 }

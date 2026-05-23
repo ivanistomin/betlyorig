@@ -66,23 +66,27 @@ export default async function handler(req, res) {
   return sendJson(res, 200, { ok: true, status: 'completed', reward });
 }
 
-function extractStoragePath(publicUrl) {
-  if (!publicUrl) return null;
+// Proof files are uploaded directly to the private "proofs" bucket and the
+// internal storage path (e.g. `uploads/<ts>_<name>`) is what we save in
+// `bets.proof_url`. Older rows from the public-bucket era stored a full
+// `https://…/storage/v1/object/public/<bucket>/<path>` URL — handle both.
+function extractStoragePath(stored) {
+  if (!stored) return null;
+  if (!stored.startsWith('http')) return stored;
   try {
-    const url = new URL(publicUrl);
-    // Supabase public URL pattern: /storage/v1/object/public/<bucket>/<path>
-    const match = url.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
+    const url = new URL(stored);
+    const match = url.pathname.match(/\/storage\/v1\/object\/(?:public|sign|authenticated)\/[^/]+\/(.+)/);
     return match ? match[1] : null;
   } catch {
     return null;
   }
 }
 
-async function deleteProofFile(sb, proofUrl) {
-  const path = extractStoragePath(proofUrl);
+async function deleteProofFile(sb, stored) {
+  const path = extractStoragePath(stored);
   if (!path) return;
   try {
-    await sb.storage.from('public').remove([path]);
+    await sb.storage.from('proofs').remove([path]);
   } catch (err) {
     console.warn('[moderateBet] Failed to delete proof file:', err.message);
   }

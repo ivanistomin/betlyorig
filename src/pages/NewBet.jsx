@@ -116,31 +116,6 @@ export default function NewBet() {
     setStep((s) => Math.min(STEPS.length - 1, s + 1));
   };
 
-  const renderContinueButton = () => (
-    <div className="pt-3 pb-24">
-      {step < STEPS.length - 1 ? (
-        <Button
-          onClick={goNext}
-          disabled={!canContinue()}
-          className="w-full h-12 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading font-semibold text-base rounded-xl gap-2"
-        >
-          {lang === 'ru' ? 'Продолжить' : 'Continue'}
-          <ArrowRight className="w-4 h-4" />
-        </Button>
-      ) : (
-        <Button
-          onClick={handleSubmit}
-          disabled={submitting}
-          className="w-full h-12 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading font-semibold text-base rounded-xl"
-        >
-          {submitting
-            ? t('placing')
-            : `${t('place_bet_btn')} — ${form.stake_amount} GEMS`}
-        </Button>
-      )}
-    </div>
-  );
-
   // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     if (!form.title.trim() || !form.proof_type || !form.category) return;
@@ -196,7 +171,38 @@ export default function NewBet() {
     }
   };
 
-  if (!profile) return null;
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  const renderContinueButton = () => (
+    <div className="pt-3 pb-24">
+      {step < STEPS.length - 1 ? (
+        <Button
+          onClick={goNext}
+          disabled={!canContinue()}
+          className="w-full h-12 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading font-semibold text-base rounded-xl gap-2"
+        >
+          {lang === 'ru' ? 'Продолжить' : 'Continue'}
+          <ArrowRight className="w-4 h-4" />
+        </Button>
+      ) : (
+        <Button
+          onClick={handleSubmit}
+          disabled={submitting}
+          className="w-full h-12 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading font-semibold text-base rounded-xl"
+        >
+          {submitting
+            ? t('placing')
+            : `${t('place_bet_btn')} — ${form.stake_amount} GEMS`}
+        </Button>
+      )}
+    </div>
+  );
 
   return (
     <div className="px-4 pt-4 space-y-5 pb-28">

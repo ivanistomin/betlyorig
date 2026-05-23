@@ -155,7 +155,7 @@ export function WheelPreview() {
     'hsl(0 75% 50%)',
   ];
   return (
-    <svg viewBox="-60 -60 120 120" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
+    <svg viewBox="-80 -55 160 110" className="w-full h-full" preserveAspectRatio="xMidYMid meet">
       <defs>
         <radialGradient id="wheel-prev-bg" cx="50%" cy="50%" r="50%">
           <stop offset="0%" stopColor="rgba(8,6,16,1)" />

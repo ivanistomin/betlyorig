@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Play } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -48,11 +48,31 @@ function computePayout(reels, stake) {
   return { winAmount: 0, multiplier: 0, kind: 'lose' };
 }
 
-function Reel({ symbol, spinning, delay }) {
+const SYMBOL_HEIGHT = 96; // px per symbol cell (matches reel window height)
+const STRIP_LEN = 30; // how many symbols in the scrolling strip
+
+function Reel({ target, spinId, durationMs, isLast, onSettle }) {
+  // Build a random strip ending with the target symbol on each spin.
+  const strip = useMemo(() => {
+    if (spinId === 0) return [target];
+    const arr = [];
+    for (let i = 0; i < STRIP_LEN - 1; i++) {
+      arr.push(SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)]);
+    }
+    arr.push(target);
+    return arr;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [spinId, target.id]);
+
+  const finalY = -(strip.length - 1) * SYMBOL_HEIGHT;
+  const spinning = spinId > 0;
+
   return (
     <div
-      className="relative w-20 h-24 rounded-xl flex items-center justify-center overflow-hidden"
+      className="relative rounded-xl overflow-hidden"
       style={{
+        width: 80,
+        height: SYMBOL_HEIGHT,
         background:
           'linear-gradient(180deg, rgba(15,10,30,0.95), rgba(30,15,50,0.95))',
         border: '2px solid rgba(180,80,255,0.4)',
@@ -60,83 +80,118 @@ function Reel({ symbol, spinning, delay }) {
           '0 0 18px rgba(180,80,255,0.45), inset 0 0 12px rgba(0,229,204,0.18)',
       }}
     >
-      <AnimatePresence mode="wait">
-        {spinning ? (
-          <motion.div
-            key="spin"
-            initial={{ y: -40, opacity: 0 }}
-            animate={{
-              y: [0, -300, 0, -300, 0, -300, 0],
-              opacity: 1,
-            }}
-            transition={{ duration: 0.8 + delay * 0.2, ease: 'easeInOut' }}
-            className="text-5xl"
-            style={{ filter: 'blur(2px)' }}
-          >
-            {SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)].label}
-          </motion.div>
-        ) : (
-          <motion.div
-            key={symbol.id}
-            initial={{ y: 30, opacity: 0, scale: 0.6 }}
-            animate={{ y: 0, opacity: 1, scale: 1 }}
-            transition={{ delay: delay * 0.15, type: 'spring', stiffness: 200 }}
-            className="text-5xl"
-            style={{
-              filter: `drop-shadow(0 0 10px ${symbol.color})`,
-            }}
-          >
-            {symbol.label}
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Top / bottom fade so symbols pass through neon haze */}
+      <div
+        className="absolute inset-x-0 top-0 h-3 z-10 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(180deg, rgba(15,10,30,1), rgba(15,10,30,0))',
+        }}
+      />
+      <div
+        className="absolute inset-x-0 bottom-0 h-3 z-10 pointer-events-none"
+        style={{
+          background:
+            'linear-gradient(0deg, rgba(15,10,30,1), rgba(15,10,30,0))',
+        }}
+      />
+
+      <motion.div
+        key={spinId}
+        initial={{ y: 0 }}
+        animate={{ y: spinning ? finalY : 0 }}
+        transition={{
+          duration: spinning ? durationMs / 1000 : 0,
+          // Sharp acceleration → long decelerating tail, like a real reel braking.
+          ease: spinning ? [0.05, 0.65, 0.15, 1] : 'linear',
+        }}
+        onAnimationComplete={() => {
+          if (isLast && spinning) onSettle?.();
+        }}
+        className="will-change-transform"
+      >
+        {strip.map((s, i) => {
+          const isLanding = i === strip.length - 1 && spinning;
+          return (
+            <ReelCell key={i} symbol={s} blur={spinning && !isLanding} landing={isLanding} />
+          );
+        })}
+      </motion.div>
+    </div>
+  );
+}
+
+function ReelCell({ symbol, blur, landing }) {
+  return (
+    <div
+      className="flex items-center justify-center"
+      style={{
+        height: SYMBOL_HEIGHT,
+        // Motion blur while flying, sharp + glow on the landed symbol.
+        filter: blur
+          ? `blur(2.2px) drop-shadow(0 0 6px ${symbol.color}88)`
+          : `drop-shadow(0 0 12px ${symbol.color})`,
+      }}
+    >
+      <motion.span
+        className="text-5xl select-none"
+        animate={landing ? { scale: [0.85, 1.12, 1] } : { scale: 1 }}
+        transition={{ duration: 0.45, times: [0, 0.55, 1] }}
+      >
+        {symbol.label}
+      </motion.span>
     </div>
   );
 }
 
 export default function CyberSlots({ profile, refreshProfile, lang }) {
   const [stake, setStake] = useState(50);
-  const [reels, setReels] = useState([SYMBOLS[0], SYMBOLS[1], SYMBOLS[2]]);
+  const [targets, setTargets] = useState([SYMBOLS[0], SYMBOLS[1], SYMBOLS[2]]);
+  const [spinId, setSpinId] = useState(0);
   const [spinning, setSpinning] = useState(false);
   const [result, setResult] = useState(null);
   const [confetti, setConfetti] = useState(false);
+  const pendingRef = useRef(null);
 
-  const spin = async () => {
+  // Each reel takes longer to stop — cascading deceleration.
+  const REEL_DURATIONS = [1800, 2400, 3100];
+
+  const spin = () => {
     if (spinning) return;
     if (!validateStake({ profile, stake, lang })) return;
 
+    const newTargets = [randomSymbol(), randomSymbol(), randomSymbol()];
+    pendingRef.current = newTargets;
     setSpinning(true);
     setResult(null);
     setConfetti(false);
+    setTargets(newTargets);
+    setSpinId((id) => id + 1);
+  };
 
-    const newReels = [randomSymbol(), randomSymbol(), randomSymbol()];
-    setTimeout(() => setReels([newReels[0], reels[1], reels[2]]), 700);
-    setTimeout(() => setReels([newReels[0], newReels[1], reels[2]]), 1000);
-    setTimeout(async () => {
-      setReels(newReels);
-      setSpinning(false);
-
-      const payout = computePayout(newReels, stake);
-      const ok = await applyGameResult({
-        profile,
-        refreshProfile,
-        stake,
-        winAmount: payout.winAmount,
-        lang,
-      });
-      if (ok) {
-        setResult(payout);
-        if (payout.winAmount > 0) {
-          setConfetti(true);
-          toast.success(
-            lang === 'ru'
-              ? `Победа! +${payout.winAmount - stake} GEMS`
-              : `Win! +${payout.winAmount - stake} GEMS`,
-          );
-          setTimeout(() => setConfetti(false), 2600);
-        }
+  const handleSettle = async () => {
+    const finalReels = pendingRef.current || targets;
+    setSpinning(false);
+    const payout = computePayout(finalReels, stake);
+    const ok = await applyGameResult({
+      profile,
+      refreshProfile,
+      stake,
+      winAmount: payout.winAmount,
+      lang,
+    });
+    if (ok) {
+      setResult(payout);
+      if (payout.winAmount > 0) {
+        setConfetti(true);
+        toast.success(
+          lang === 'ru'
+            ? `Победа! +${payout.winAmount - stake} GEMS`
+            : `Win! +${payout.winAmount - stake} GEMS`,
+        );
+        setTimeout(() => setConfetti(false), 2600);
       }
-    }, 1400);
+    }
   };
 
   const max = profile.gems_balance;
@@ -164,8 +219,15 @@ export default function CyberSlots({ profile, refreshProfile, lang }) {
         {confetti && <Confetti />}
 
         <div className="relative flex items-center justify-center gap-3 mb-5">
-          {reels.map((sym, i) => (
-            <Reel key={i} symbol={sym} spinning={spinning} delay={i} />
+          {targets.map((sym, i) => (
+            <Reel
+              key={i}
+              target={sym}
+              spinId={spinId}
+              durationMs={REEL_DURATIONS[i]}
+              isLast={i === targets.length - 1}
+              onSettle={handleSettle}
+            />
           ))}
         </div>
 
@@ -184,9 +246,7 @@ export default function CyberSlots({ profile, refreshProfile, lang }) {
                 }`}
               >
                 {result.winAmount > 0
-                  ? lang === 'ru'
-                    ? `+${result.winAmount} 💎  ×${result.multiplier}`
-                    : `+${result.winAmount} 💎  ×${result.multiplier}`
+                  ? `+${result.winAmount} 💎  ×${result.multiplier}`
                   : lang === 'ru'
                   ? '— Ничего. Крути ещё'
                   : '— Nothing. Try again'}

@@ -6,9 +6,12 @@ import { toast } from 'sonner';
 import { applyGameResult, validateStake } from './useGameBet';
 import StakeBar from './StakeBar';
 
-// Triangular peg field: 2 pegs at the top, 13 pegs at the bottom,
-// laid out on an equilateral lattice so the silhouette is a real plinko triangle.
-const ROWS = 12;
+// Full-rectangle hexagonal peg lattice: every row is shifted by half a step,
+// so the whole playfield (not just a triangle) is covered with obstacles.
+// Spacing is chosen so the ball diameter (~12) passes between any two pegs
+// with clearance, and no peg can trap the ball against another.
+const HEX_H_SPACING = 30; // horizontal distance between pegs in a row
+const HEX_V_SPACING = 26; // vertical distance between rows
 // Bucket multipliers — edges pay big, center is mostly a loss.
 // Tuned so the expected return is well below 1× (real house edge, harder to win).
 const MULTIPLIERS = [12, 5, 2, 1, 0.4, 0.2, 0, 0.2, 0.4, 1, 2, 5, 12];
@@ -37,17 +40,22 @@ const BUCKET_FLOOR_Y = HEIGHT - 6;
 function buildPegs() {
   const pegs = [];
   const topPad = 50;
-  const bottomCount = ROWS + 1; // 13 pegs along the bottom row
-  // Spacing wide enough that a ball (diameter ~12) passes freely between pegs.
-  const hSpacing = (WIDTH - 18) / (bottomCount - 1);
-  const rowGap = (HEIGHT - topPad - BUCKET_AREA_HEIGHT - 30) / (ROWS - 1);
-  for (let r = 0; r < ROWS; r++) {
-    const count = r + 2; // 2 at the top → 13 at the bottom
-    const y = topPad + r * rowGap;
-    const rowWidth = (count - 1) * hSpacing;
-    const startX = (WIDTH - rowWidth) / 2;
-    for (let c = 0; c < count; c++) {
-      pegs.push({ x: startX + c * hSpacing, y });
+  const bottomMargin = BUCKET_AREA_HEIGHT + 18; // keep last row above buckets
+  const usableHeight = HEIGHT - topPad - bottomMargin;
+  const rowCount = Math.floor(usableHeight / HEX_V_SPACING) + 1;
+  // Side margin keeps pegs away from the outer walls — leaves a chute the
+  // ball can fall through if it ricochets against the side.
+  const sideMargin = 14;
+  const usableWidth = WIDTH - sideMargin * 2;
+  for (let r = 0; r < rowCount; r++) {
+    const offset = r % 2 === 0 ? 0 : HEX_H_SPACING / 2;
+    const y = topPad + r * HEX_V_SPACING;
+    const startX = sideMargin + offset;
+    const pegsInRow = Math.floor((usableWidth - offset) / HEX_H_SPACING) + 1;
+    for (let c = 0; c < pegsInRow; c++) {
+      const x = startX + c * HEX_H_SPACING;
+      if (x > WIDTH - sideMargin) break;
+      pegs.push({ x, y });
     }
   }
   return pegs;
@@ -212,12 +220,12 @@ export default function NeonPlinko({ profile, refreshProfile, lang }) {
       y += vy;
 
       // Anti-stall: if the ball stops moving downward for too long (stuck
-      // between two pegs), give it a tiny nudge so it keeps falling.
-      if (Math.abs(vy) < 0.25 && y < BUCKET_TOP_Y) {
+      // resting on a peg in the dense hex field), nudge it free.
+      if (Math.abs(vy) < 0.3 && y < BUCKET_TOP_Y) {
         stallFrames++;
-        if (stallFrames > 18) {
-          vy += 0.9;
-          vx += (Math.random() - 0.5) * 0.6;
+        if (stallFrames > 12) {
+          vy += 1.4;
+          vx += (Math.random() - 0.5) * 1.2;
           stallFrames = 0;
         }
       } else {
@@ -287,10 +295,11 @@ export default function NeonPlinko({ profile, refreshProfile, lang }) {
       setHitPegs({ ...hitPegsRef.current });
 
       // Settle once the ball is in the bucket area AND moving slowly enough,
-      // or after a hard frame cap so a freak physics state still resolves.
+      // or after a hard frame cap so a freak physics state still resolves
+      // (teleport into a bucket if the ball is somehow still up in the field).
       const slow = Math.abs(vy) < 0.6 && Math.abs(vx) < 0.4;
       const onFloor = y + BALL_RADIUS >= BUCKET_FLOOR_Y - 0.5;
-      const timedOut = frames > 1200 && y > BUCKET_TOP_Y;
+      const timedOut = frames > 1500;
       if ((y > BUCKET_TOP_Y && slow && onFloor) || timedOut) {
         const idx = Math.min(
           MULTIPLIERS.length - 1,

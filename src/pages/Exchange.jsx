@@ -43,21 +43,19 @@ export default function Exchange() {
 
     setLoading(true);
     try {
-      // Save the request to the moderation queue. If the table doesn't exist
-      // yet (e.g. migration not applied), don't block the user — log and continue.
-      try {
-        await db.entities.ExchangeRequest.create({
-          user_email: profile.user_email,
-          tg_id: profile.tg_id ? String(profile.tg_id) : null,
-          tg_username: profile.tg_username || null,
-          gems_amount: gemsAmount,
-          ton_amount: parseFloat(tonOut),
-          wallet_address: walletAddress.trim(),
-          status: 'pending',
-        });
-      } catch (reqErr) {
-        console.warn('Failed to record exchange request:', reqErr);
-      }
+      // Persist the request to the moderation queue. We do NOT swallow this
+      // error any more: if the row never lands in `exchange_requests`,
+      // moderators can't see the request and we must surface that to the user
+      // (most common cause: RLS policy or missing migration).
+      await db.entities.ExchangeRequest.create({
+        user_email: profile.user_email,
+        tg_id: profile.tg_id ? String(profile.tg_id) : null,
+        tg_username: profile.tg_username || null,
+        gems_amount: gemsAmount,
+        ton_amount: parseFloat(tonOut),
+        wallet_address: walletAddress.trim(),
+        status: 'pending',
+      });
 
       try {
         await db.functions.invoke('sendTelegramNotification', {

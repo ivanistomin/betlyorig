@@ -180,8 +180,10 @@ export default function Game() {
                   </span>
                 </div>
 
-                <div className="relative flex-1 my-1 flex items-center justify-center">
-                  <Preview />
+                <div className="relative flex-1 my-1 flex items-center justify-center min-h-0">
+                  <div className="w-full h-full max-h-[110px] flex items-center justify-center">
+                    <Preview />
+                  </div>
                 </div>
 
                 <div className="relative space-y-0.5">

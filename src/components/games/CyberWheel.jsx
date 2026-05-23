@@ -34,11 +34,14 @@ export default function CyberWheel({ profile, refreshProfile, lang }) {
     setResult(null);
 
     const targetIdx = Math.floor(Math.random() * SECTORS.length);
-    const turns = 6 + Math.floor(Math.random() * 3);
-    // Pointer points to top (12 o'clock). We want sector center to end at the top.
-    // Sector i center is at angle (i + 0.5) * SEGMENT_ANGLE counted clockwise from 12 o'clock origin in our SVG.
+    const turns = 7 + Math.floor(Math.random() * 3); // 7..9 full rotations
     const sectorCenter = (targetIdx + 0.5) * SEGMENT_ANGLE;
-    const finalAngle = turns * 360 - sectorCenter;
+    // Always rotate FORWARD from the current angle — otherwise a small finalAngle
+    // can cause the wheel to barely move (or spin backwards) on repeat plays.
+    const currentMod = ((rotation % 360) + 360) % 360;
+    const targetMod = ((-sectorCenter) % 360 + 360) % 360;
+    let deltaToTarget = (targetMod - currentMod + 360) % 360;
+    const finalAngle = rotation + turns * 360 + deltaToTarget;
     setRotation(finalAngle);
 
     setTimeout(async () => {
@@ -62,7 +65,7 @@ export default function CyberWheel({ profile, refreshProfile, lang }) {
         }
       }
       setSpinning(false);
-    }, 4200);
+    }, 4700);
   };
 
   const max = profile.gems_balance;
@@ -102,7 +105,7 @@ export default function CyberWheel({ profile, refreshProfile, lang }) {
             />
             <motion.div
               animate={{ rotate: rotation }}
-              transition={{ duration: 4, ease: [0.17, 0.67, 0.1, 1.01] }}
+              transition={{ duration: 4.5, ease: [0.12, 0.62, 0.18, 1] }}
               className="w-full h-full"
               style={{
                 filter: 'drop-shadow(0 0 16px rgba(0,229,180,0.45))',

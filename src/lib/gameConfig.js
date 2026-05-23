@@ -11,12 +11,22 @@ export const CATEGORIES = {
 
 // Duration multipliers
 export const DURATION_MULTIPLIERS = {
-  1:  { multiplier: 1.0, label: '×1.0' },
-  3:  { multiplier: 1.3, label: '×1.3' },
-  7:  { multiplier: 1.6, label: '×1.6' },
-  14: { multiplier: 2.0, label: '×2.0' },
-  30: { multiplier: 3.0, label: '×3.0' },
+  1:  { multiplier: 1.3, label: '×1.3' },
+  3:  { multiplier: 1.6, label: '×1.6' },
+  7:  { multiplier: 1.9, label: '×1.9' },
+  14: { multiplier: 2.3, label: '×2.3' },
+  30: { multiplier: 3.3, label: '×3.3' },
 };
+
+// Daily bet limits
+// Every user starts with 1 bet per day. Each invited friend adds +1 slot.
+export const BASE_DAILY_BET_LIMIT = 1;
+export function getDailyBetLimit(profile) {
+  const friendsCount = Array.isArray(profile?.tg_friends_ids)
+    ? profile.tg_friends_ids.length
+    : 0;
+  return BASE_DAILY_BET_LIMIT + friendsCount;
+}
 
 // Proof type multipliers
 export const PROOF_MULTIPLIERS = {

@@ -8,6 +8,8 @@ export const translations = {
     rank: 'Rank',
     exchange: 'Exchange',
     profile: 'Profile',
+    avatar: 'Avatar',
+    game: 'Game',
     // Dashboard
     dashboard_subtitle: 'Your habit battleground',
     active_bets: 'Active Bets',
@@ -77,6 +79,8 @@ export const translations = {
     rank: 'Рейтинг',
     exchange: 'Обмен',
     profile: 'Профиль',
+    avatar: 'Аватар',
+    game: 'Игра',
     // Dashboard
     dashboard_subtitle: 'Твоя арена привычек',
     active_bets: 'Активные ставки',

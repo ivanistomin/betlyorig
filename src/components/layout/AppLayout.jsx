@@ -1,15 +1,17 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Target, Trophy, Sword, Gem, Plus, Shield } from 'lucide-react';
+import { Target, Trophy, Sword, Gem, Plus, Shield, User, Gamepad2 } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
 import { useProfile } from '@/lib/useProfile';
 
 const NAV_ITEMS = [
-  { path: '/missions',   icon: Sword,  labelKey: 'missions' },
-  { path: '/bets',       icon: Target, labelKey: 'bets' },
-  { path: '/new-bet',    icon: Plus,   isCenter: true },
-  { path: '/leaderboard',icon: Trophy, labelKey: 'rank' },
-  { path: '/exchange',   icon: Gem,    labelKey: 'exchange' },
+  { path: '/avatar',     icon: User,    labelKey: 'avatar' },
+  { path: '/missions',   icon: Sword,   labelKey: 'missions' },
+  { path: '/bets',       icon: Target,  labelKey: 'bets' },
+  { path: '/new-bet',    icon: Plus,    isCenter: true },
+  { path: '/game',       icon: Gamepad2,labelKey: 'game' },
+  { path: '/leaderboard',icon: Trophy,  labelKey: 'rank' },
+  { path: '/exchange',   icon: Gem,     labelKey: 'exchange' },
 ];
 
 function BottomNav() {
@@ -22,9 +24,9 @@ function BottomNav() {
       style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}
     >
       {/* LiquidGlass pill */}
-      <div className="flex justify-center pb-3 px-4">
+      <div className="flex justify-center pb-3 px-2">
         <div
-          className="flex items-center gap-1 px-2 h-[62px] rounded-[28px]"
+          className="flex items-center gap-0.5 px-1.5 h-[62px] rounded-[28px]"
           style={{
             background: 'rgba(22, 16, 38, 0.45)',
             backdropFilter: 'blur(40px) saturate(200%) brightness(1.15)',
@@ -59,9 +61,9 @@ function BottomNav() {
               <Link
                 key={item.path}
                 to={item.path}
-                className="relative flex flex-col items-center justify-center gap-0.5 px-3 h-full rounded-2xl transition-all"
+                className="relative flex flex-col items-center justify-center gap-0.5 px-1.5 h-full rounded-2xl transition-all"
                 style={{
-                  minWidth: 52,
+                  minWidth: 42,
                   background: isActive ? 'rgba(255,255,255,0.1)' : 'transparent',
                   boxShadow: isActive ? 'inset 0 1px 0 rgba(255,255,255,0.15)' : 'none',
                 }}

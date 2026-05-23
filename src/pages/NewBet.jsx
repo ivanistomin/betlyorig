@@ -1,6 +1,8 @@
 import { db } from '@/api/base44Client';
+import { supabase } from '@/api/supabaseClient';
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
 
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -12,6 +14,7 @@ import {
   LockKeyhole,
   CheckCircle2,
   Sparkles,
+  Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,6 +27,7 @@ import {
   calculateReward,
   validateGoalTitle,
   getAllowedProofTypes,
+  getDailyBetLimit,
 } from '@/lib/gameConfig';
 import { BET_TEMPLATES } from '@/lib/betTemplates';
 import GemsBadge from '@/components/common/GemsBadge';
@@ -43,6 +47,12 @@ const DURATION_PRESETS = [1, 3, 7, 14, 30];
 // 4. summary    — final review and place bet
 const STEPS = ['category', 'activity', 'stake', 'summary'];
 
+function startOfTodayIso() {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString();
+}
+
 export default function NewBet() {
   const navigate = useNavigate();
   const { lang, t } = useLang();
@@ -50,6 +60,22 @@ export default function NewBet() {
   const [submitting, setSubmitting] = useState(false);
   const [goalError, setGoalError] = useState('');
   const [step, setStep] = useState(0);
+
+  const dailyLimit = getDailyBetLimit(profile);
+  const { data: betsToday = 0, refetch: refetchBetsToday } = useQuery({
+    queryKey: ['bets-today', user?.email],
+    enabled: !!user?.email,
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from('bets')
+        .select('id', { count: 'exact', head: true })
+        .eq('user_email', user.email)
+        .gte('created_date', startOfTodayIso());
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+  const limitReached = betsToday >= dailyLimit;
 
   const [form, setForm] = useState({
     category: '',
@@ -152,6 +178,14 @@ export default function NewBet() {
       setStep(2);
       return;
     }
+    if (limitReached) {
+      toast.error(
+        lang === 'ru'
+          ? `Лимит на сегодня — ${dailyLimit}. Пригласи друга, чтобы добавить +1 ставку.`
+          : `Today's limit is ${dailyLimit}. Invite a friend to unlock +1 bet.`,
+      );
+      return;
+    }
 
     setSubmitting(true);
     try {
@@ -180,6 +214,7 @@ export default function NewBet() {
           ? `Ставка сделана! ${form.stake_amount} 💎 поставлено`
           : `Bet placed! ${form.stake_amount} 💎 staked`,
       );
+      refetchBetsToday();
       navigate('/bets');
     } catch (e) {
       toast.error(e.message || 'Failed to place bet');
@@ -210,11 +245,13 @@ export default function NewBet() {
       ) : (
         <Button
           onClick={handleSubmit}
-          disabled={submitting}
-          className="w-full h-12 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading font-semibold text-base rounded-xl"
+          disabled={submitting || limitReached}
+          className="w-full h-12 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading font-semibold text-base rounded-xl disabled:opacity-50"
         >
           {submitting
             ? t('placing')
+            : limitReached
+            ? (lang === 'ru' ? 'Лимит на сегодня исчерпан' : "Today's limit reached")
             : `${t('place_bet_btn')} — ${form.stake_amount} GEMS`}
         </Button>
       )}
@@ -237,6 +274,13 @@ export default function NewBet() {
       </div>
 
       <StepProgress current={step} total={STEPS.length} />
+
+      <DailyLimitBanner
+        lang={lang}
+        used={betsToday}
+        limit={dailyLimit}
+        reached={limitReached}
+      />
 
       <AnimatePresence mode="wait">
         <motion.div
@@ -769,6 +813,47 @@ function SummaryRow({ label, value }) {
     <div className="flex items-start justify-between gap-3">
       <span className="text-xs text-muted-foreground shrink-0">{label}</span>
       <span className="text-sm text-right min-w-0">{value}</span>
+    </div>
+  );
+}
+
+function DailyLimitBanner({ lang, used, limit, reached }) {
+  const left = Math.max(0, limit - used);
+  return (
+    <div
+      className={`rounded-xl border px-3 py-2.5 flex items-center gap-3 ${
+        reached
+          ? 'border-destructive/40 bg-destructive/10'
+          : 'border-neon-cyan/30 bg-neon-cyan/5'
+      }`}
+    >
+      <div
+        className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
+          reached ? 'bg-destructive/20 text-destructive' : 'bg-neon-cyan/15 text-neon-cyan'
+        }`}
+      >
+        <Users className="w-4 h-4" />
+      </div>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+          {lang === 'ru' ? 'Лимит на сегодня' : 'Daily limit'}
+        </p>
+        <p className="text-sm font-heading font-semibold text-foreground">
+          {used} / {limit}{' '}
+          <span className="text-xs font-normal text-muted-foreground">
+            {reached
+              ? (lang === 'ru' ? '— исчерпан' : '— reached')
+              : lang === 'ru'
+              ? `(осталось ${left})`
+              : `(${left} left)`}
+          </span>
+        </p>
+        <p className="text-[11px] text-muted-foreground mt-0.5">
+          {lang === 'ru'
+            ? 'Пригласи друга — +1 ставка в день'
+            : 'Invite a friend — +1 bet per day'}
+        </p>
+      </div>
     </div>
   );
 }

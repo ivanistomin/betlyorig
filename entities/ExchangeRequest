@@ -1,0 +1,56 @@
+{
+  "name": "ExchangeRequest",
+  "type": "object",
+  "properties": {
+    "user_email": {
+      "type": "string",
+      "description": "Email of the user requesting exchange"
+    },
+    "tg_id": {
+      "type": "string",
+      "description": "Telegram ID of the user"
+    },
+    "tg_username": {
+      "type": "string",
+      "description": "Telegram username of the user"
+    },
+    "gems_amount": {
+      "type": "number",
+      "description": "Amount of GEMS the user is exchanging"
+    },
+    "ton_amount": {
+      "type": "number",
+      "description": "Amount of TON the user is to receive"
+    },
+    "wallet_address": {
+      "type": "string",
+      "description": "TON wallet address provided by the user"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "pending",
+        "approved",
+        "rejected"
+      ],
+      "default": "pending",
+      "description": "Moderation status"
+    },
+    "rejection_reason": {
+      "type": "string"
+    },
+    "reviewed_by": {
+      "type": "string"
+    },
+    "reviewed_at": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "user_email",
+    "gems_amount",
+    "ton_amount",
+    "wallet_address"
+  ]
+}

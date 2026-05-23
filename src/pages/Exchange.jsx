@@ -43,10 +43,24 @@ export default function Exchange() {
 
     setLoading(true);
     try {
-      await db.functions.invoke('sendTelegramNotification', {
-        tg_id: profile.tg_id,
-        message: `💎➡️TON Exchange Request\n\nAmount: ${gemsAmount} GEMS\nTON to receive: ${tonOut} TON\nWallet: ${walletAddress}\n\nYour request is being processed. TON will be sent within 24h.`,
+      await db.entities.ExchangeRequest.create({
+        user_email: profile.user_email,
+        tg_id: profile.tg_id ? String(profile.tg_id) : null,
+        tg_username: profile.tg_username || null,
+        gems_amount: gemsAmount,
+        ton_amount: parseFloat(tonOut),
+        wallet_address: walletAddress.trim(),
+        status: 'pending',
       });
+
+      try {
+        await db.functions.invoke('sendTelegramNotification', {
+          tg_id: profile.tg_id,
+          message: `💎➡️TON Exchange Request\n\nAmount: ${gemsAmount} GEMS\nTON to receive: ${tonOut} TON\nWallet: ${walletAddress}\n\nYour request is being processed. TON will be sent within 24h.`,
+        });
+      } catch (notifyErr) {
+        console.warn('Failed to send TG notification', notifyErr);
+      }
 
       await db.entities.UserProfile.update(profile.id, {
         gems_balance: profile.gems_balance - gemsAmount,

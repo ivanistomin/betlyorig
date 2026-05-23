@@ -6,16 +6,16 @@ import { toast } from 'sonner';
 import { applyGameResult, validateStake } from './useGameBet';
 import StakeBar from './StakeBar';
 
-// 8 sectors. Edge to house: average payout ~0.86x
+// 8 sectors. Tuned for a real house edge — average payout ~0.91x.
 const SECTORS = [
   { mult: 0,    color: 'hsl(0 75% 35%)',   label: 'LOSE' },
-  { mult: 1.5,  color: 'hsl(195 95% 55%)', label: '×1.5' },
+  { mult: 1.2,  color: 'hsl(195 95% 55%)', label: '×1.2' },
   { mult: 0,    color: 'hsl(0 75% 35%)',   label: 'LOSE' },
-  { mult: 2,    color: 'hsl(280 95% 60%)', label: '×2' },
-  { mult: 0.5,  color: 'hsl(220 30% 35%)', label: '×0.5' },
-  { mult: 3,    color: 'hsl(160 95% 50%)', label: '×3' },
-  { mult: 0.5,  color: 'hsl(220 30% 35%)', label: '×0.5' },
-  { mult: 10,   color: 'hsl(45 95% 60%)',  label: '×10' },
+  { mult: 0.5,  color: 'hsl(280 95% 60%)', label: '×0.5' },
+  { mult: 0.3,  color: 'hsl(220 30% 35%)', label: '×0.3' },
+  { mult: 2,    color: 'hsl(160 95% 50%)', label: '×2' },
+  { mult: 0,    color: 'hsl(0 75% 35%)',   label: 'LOSE' },
+  { mult: 3,    color: 'hsl(45 95% 60%)',  label: '×3' },
 ];
 
 const SEGMENT_ANGLE = 360 / SECTORS.length;

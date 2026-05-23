@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Shield, Check, X, Hourglass, ExternalLink, Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
+import { Shield, Check, X, Hourglass, ExternalLink, Loader2, AlertTriangle, ArrowLeft, Wallet, ChevronDown, ChevronUp } from 'lucide-react';
 import { Link, Navigate } from 'react-router-dom';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -55,10 +55,16 @@ export default function Moderation() {
             <Shield className="w-3.5 h-3.5" />
             Общие ставки
           </TabsTrigger>
+          <TabsTrigger value="exchanges" className="flex-1 text-xs gap-1">
+            <Wallet className="w-3.5 h-3.5" />
+            Обмены
+          </TabsTrigger>
         </TabsList>
       </Tabs>
 
-      {tab === 'proofs' ? <ProofsQueue /> : <CommunityBetsQueue />}
+      {tab === 'proofs' && <ProofsQueue />}
+      {tab === 'community' && <CommunityBetsQueue />}
+      {tab === 'exchanges' && <ExchangeQueue />}
     </div>
   );
 }
@@ -360,6 +366,178 @@ function CommunityCard({ cb, index, busy, onApprove, onReject }) {
           whileTap={{ scale: 0.92 }}
           disabled={busy}
           onClick={onReject}
+          className="px-3 h-8 rounded-lg bg-destructive/20 text-destructive border border-destructive/30 flex items-center gap-1 text-xs font-heading font-semibold disabled:opacity-50"
+        >
+          <X className="w-3.5 h-3.5" /> Отклонить
+        </motion.button>
+      </div>
+    </motion.div>
+  );
+}
+
+function ExchangeQueue() {
+  const qc = useQueryClient();
+  const [busyId, setBusyId] = useState(null);
+
+  const { data: items = [], isLoading } = useQuery({
+    queryKey: ['moderation-exchanges'],
+    queryFn: () =>
+      db.entities.ExchangeRequest.filter({ status: 'pending' }, '-created_date'),
+  });
+
+  const updateStatus = async (req, newStatus) => {
+    setBusyId(req.id);
+    try {
+      await db.entities.ExchangeRequest.update(req.id, {
+        status: newStatus,
+        reviewed_at: new Date().toISOString(),
+      });
+      toast.success(newStatus === 'approved' ? '✅ Одобрено' : '❌ Отклонено');
+      qc.invalidateQueries({ queryKey: ['moderation-exchanges'] });
+    } catch (e) {
+      toast.error(`Ошибка: ${e.message}`);
+    } finally {
+      setBusyId(null);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center py-12">
+        <Loader2 className="w-6 h-6 animate-spin text-primary" />
+      </div>
+    );
+  }
+  if (items.length === 0) {
+    return (
+      <div className="text-center py-12 rounded-xl bg-card border border-border/50 space-y-2">
+        <span className="text-4xl">💸</span>
+        <p className="font-heading font-semibold text-foreground">Очередь пуста</p>
+        <p className="text-sm text-muted-foreground">Новых запросов на обмен нет.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-3">
+      <AnimatePresence>
+        {items.map((req, i) => (
+          <ExchangeCard
+            key={req.id}
+            req={req}
+            index={i}
+            busy={busyId === req.id}
+            onApprove={() => updateStatus(req, 'approved')}
+            onReject={() => updateStatus(req, 'rejected')}
+          />
+        ))}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+function ExchangeCard({ req, index, busy, onApprove, onReject }) {
+  const [open, setOpen] = useState(false);
+  const submittedAgo = req.created_date
+    ? formatDistanceToNow(new Date(req.created_date), { addSuffix: true })
+    : null;
+
+  const copyWallet = async () => {
+    try {
+      await navigator.clipboard?.writeText(req.wallet_address);
+      toast.success('Адрес кошелька скопирован');
+    } catch {
+      toast.error('Не удалось скопировать');
+    }
+  };
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: index * 0.04 }}
+      className="rounded-xl bg-card border border-neon-cyan/30 p-4 space-y-3"
+    >
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <span className="text-2xl shrink-0">💸</span>
+          <div className="min-w-0">
+            <h3 className="font-heading font-semibold text-foreground leading-tight truncate">
+              Запрос на обмен
+            </h3>
+            <p className="text-[11px] text-muted-foreground truncate">
+              {req.tg_username ? `@${req.tg_username}` : req.user_email}
+            </p>
+          </div>
+        </div>
+        <GemsBadge amount={req.gems_amount} size="sm" />
+      </div>
+
+      <button
+        onClick={() => setOpen((v) => !v)}
+        className="w-full flex items-center justify-between rounded-lg bg-secondary/60 border border-border/50 px-3 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+      >
+        <span className="flex items-center gap-1.5">
+          {open ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          {open ? 'Скрыть детали' : 'Показать кошелёк и сумму'}
+        </span>
+        {submittedAgo && (
+          <span className="flex items-center gap-1">
+            <Hourglass className="w-3 h-3" /> {submittedAgo}
+          </span>
+        )}
+      </button>
+
+      {open && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: 'auto' }}
+          className="rounded-lg bg-secondary/60 border border-border/50 p-3 space-y-2"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">GEMS</p>
+              <p className="text-sm font-heading font-semibold text-foreground">
+                {Number(req.gems_amount).toLocaleString()} 💎
+              </p>
+            </div>
+            <div className="min-w-0 text-right">
+              <p className="text-[11px] uppercase tracking-wider text-muted-foreground">TON к выплате</p>
+              <p className="text-sm font-heading font-semibold text-neon-cyan">
+                {Number(req.ton_amount).toFixed(4)} TON
+              </p>
+            </div>
+          </div>
+          <div>
+            <p className="text-[11px] uppercase tracking-wider text-muted-foreground mb-1 flex items-center gap-1">
+              <Wallet className="w-3 h-3" /> TON кошелёк
+            </p>
+            <button
+              onClick={copyWallet}
+              className="w-full text-left font-mono text-xs text-foreground break-all rounded-md bg-black/30 border border-border/50 px-2 py-1.5 hover:bg-black/40 transition-colors"
+              title="Нажми, чтобы скопировать"
+            >
+              {req.wallet_address}
+            </button>
+          </div>
+        </motion.div>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          disabled={busy}
+          onClick={onApprove}
+          aria-label="Одобрить"
+          className="px-3 h-8 rounded-lg bg-success/20 text-success border border-success/30 flex items-center gap-1 text-xs font-heading font-semibold disabled:opacity-50"
+        >
+          <Check className="w-3.5 h-3.5" /> Одобрить
+        </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.92 }}
+          disabled={busy}
+          onClick={onReject}
+          aria-label="Отклонить"
           className="px-3 h-8 rounded-lg bg-destructive/20 text-destructive border border-destructive/30 flex items-center gap-1 text-xs font-heading font-semibold disabled:opacity-50"
         >
           <X className="w-3.5 h-3.5" /> Отклонить

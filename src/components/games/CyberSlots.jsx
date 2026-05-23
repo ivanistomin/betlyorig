@@ -27,14 +27,14 @@ function randomSymbol() {
   return SYMBOLS[0];
 }
 
-// Payouts (multipliers on stake)
+// Payouts (multipliers on stake) — tuned for a real house edge.
 const PAYOUTS = {
-  gem: 2,
-  star: 3,
-  fire: 5,
-  lightning: 8,
-  seven: 25,
-  crown: 50,
+  gem: 1.5,
+  star: 2.5,
+  fire: 4,
+  lightning: 6,
+  seven: 15,
+  crown: 40,
 };
 
 function computePayout(reels, stake) {
@@ -42,8 +42,9 @@ function computePayout(reels, stake) {
     const mult = PAYOUTS[reels[0].id] || 1;
     return { winAmount: Math.round(stake * mult), multiplier: mult, kind: 'jackpot' };
   }
+  // Pairs return half the stake — still a net loss, kept for feedback only.
   if (reels[0].id === reels[1].id || reels[1].id === reels[2].id || reels[0].id === reels[2].id) {
-    return { winAmount: Math.round(stake * 1.2), multiplier: 1.2, kind: 'pair' };
+    return { winAmount: Math.round(stake * 0.5), multiplier: 0.5, kind: 'pair' };
   }
   return { winAmount: 0, multiplier: 0, kind: 'lose' };
 }

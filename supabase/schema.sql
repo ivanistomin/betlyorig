@@ -227,16 +227,26 @@ create policy user_missions_delete on public.user_missions for delete
 -- (Run from the Supabase SQL editor as the service role.)
 
 -- ---------------------------------------------------------------------------
--- Storage bucket for proof uploads
-insert into storage.buckets (id, name, public) values ('public', 'public', true)
-  on conflict (id) do nothing;
+-- Storage: private bucket for proof files (only accessible via signed URLs)
+-- Delete old public bucket policies if exist
+drop policy if exists "Allow public read" on storage.objects;
 
--- Allow authenticated users to upload files to the public bucket
-create policy if not exists "Allow authenticated uploads"
-  on storage.objects for insert to authenticated with check (bucket_id = 'public');
+-- Create private proofs bucket
+insert into storage.buckets (id, name, public)
+values ('proofs', 'proofs', false)
+on conflict (id) do nothing;
 
-create policy if not exists "Allow public read"
-  on storage.objects for select to anon using (bucket_id = 'public');
+-- Authenticated users can upload their proof files
+create policy if not exists "Proofs: authenticated uploads"
+  on storage.objects for insert to authenticated
+  with check (bucket_id = 'proofs');
 
-create policy if not exists "Allow authenticated users to delete their own uploads"
-  on storage.objects for delete to authenticated using (bucket_id = 'public' and (select auth.uid()) = owner);
+-- Authenticated users can read (used for signed URLs generation)
+create policy if not exists "Proofs: authenticated select"
+  on storage.objects for select to authenticated
+  using (bucket_id = 'proofs');
+
+-- Users can delete their own files
+create policy if not exists "Proofs: authenticated delete own"
+  on storage.objects for delete to authenticated
+  using (bucket_id = 'proofs' and (select auth.uid()) = owner);

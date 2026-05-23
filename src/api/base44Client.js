@@ -168,15 +168,14 @@ const integrations = {
       if (!file) return { file_url: '' };
       const path = `uploads/${Date.now()}_${file.name || 'file'}`;
       const { data, error } = await supabase.storage
-        .from('public')
+        .from('proofs')
         .upload(path, file, { upsert: false });
       if (error) {
-         
         console.error('[Supabase upload]', error);
         return { file_url: '' };
       }
-      const { data: pub } = supabase.storage.from('public').getPublicUrl(data.path);
-      return { file_url: pub.publicUrl };
+      // Return the internal path so we can generate signed URLs server-side
+      return { file_url: data.path };
     },
   },
 };

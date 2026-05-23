@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Shield, Check, X, Hourglass, ExternalLink, Loader2, AlertTriangle, ArrowLeft } from 'lucide-react';
@@ -187,7 +187,7 @@ function ProofCard({ bet, index, busy, onApprove, onReject }) {
         {bet.proof_note
           ? <p className="text-sm text-foreground whitespace-pre-wrap">{bet.proof_note}</p>
           : <p className="text-sm text-muted-foreground italic">— без описания —</p>}
-        {bet.proof_url && <ProofAttachment url={bet.proof_url} />}
+        {bet.proof_url && <ProofAttachment betId={bet.id} url={bet.proof_url} />}
       </div>
 
       <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -369,37 +369,65 @@ function CommunityCard({ cb, index, busy, onApprove, onReject }) {
   );
 }
 
-function ProofAttachment({ url }) {
+function ProofAttachment({ betId, url }) {
+  const [signedUrl, setSignedUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
   const isImage = /\.(png|jpe?g|gif|webp|heic|heif|bmp)(\?|$)/i.test(url);
   const isVideo = /\.(mp4|mov|webm|m4v|ogg)(\?|$)/i.test(url);
-  return (
-    <div className="space-y-2">
-      {isImage && (
-        <a href={url} target="_blank" rel="noreferrer" className="block">
+
+  const loadSignedUrl = useCallback(async () => {
+    setLoading(true);
+    try {
+      const { url: signed } = await db.functions.invoke('getProofUrl', { betId });
+      setSignedUrl(signed);
+    } catch (e) {
+      toast.error('Не удалось загрузить файл: ' + e.message);
+    } finally {
+      setLoading(false);
+    }
+  }, [betId]);
+
+  if (signedUrl) {
+    return (
+      <div className="space-y-2">
+        {isImage && (
           <img
-            src={url}
+            src={signedUrl}
             alt="Proof"
             className="rounded-lg max-h-72 w-full object-contain bg-black/30 border border-border/40"
-            loading="lazy"
           />
-        </a>
-      )}
-      {isVideo && (
-        <video
-          src={url}
-          controls
-          className="rounded-lg max-h-72 w-full object-contain bg-black/30 border border-border/40"
-        />
-      )}
-      <a
-        href={url}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex items-center gap-1 text-xs text-neon-cyan hover:underline break-all"
+        )}
+        {isVideo && (
+          <video
+            src={signedUrl}
+            controls
+            className="rounded-lg max-h-72 w-full object-contain bg-black/30 border border-border/40"
+          />
+        )}
+        <button
+          onClick={() => setSignedUrl(null)}
+          className="text-xs text-muted-foreground hover:text-foreground"
+        >
+          Скрыть
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <button
+        onClick={loadSignedUrl}
+        disabled={loading}
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-neon-cyan/10 border border-neon-cyan/30 text-neon-cyan text-xs font-medium hover:bg-neon-cyan/20 transition-colors disabled:opacity-50"
       >
-        <ExternalLink className="w-3 h-3 shrink-0" />
-        {isImage || isVideo ? 'Открыть оригинал' : url}
-      </a>
+        {loading ? (
+          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+        ) : (
+          <ExternalLink className="w-3.5 h-3.5" />
+        )}
+        {loading ? 'Загрузка...' : (isImage || isVideo ? 'Показать вложение' : 'Скачать файл')}
+      </button>
     </div>
   );
 }

@@ -35,10 +35,13 @@ export default async function handler(req, res) {
         rejection_reason: String(reason).trim().slice(0, 500),
         reviewed_by: user.email,
         reviewed_at: nowIso,
+        proof_url: null,
+        proof_note: null,
       })
       .eq('id', betId);
     if (error) return sendJson(res, 500, { error: error.message });
 
+    await deleteProofFile(sb, bet.proof_url);
     await applyFailureToProfile(sb, bet);
     return sendJson(res, 200, { ok: true, status: 'failed' });
   }
@@ -52,12 +55,37 @@ export default async function handler(req, res) {
       reward_amount: reward,
       reviewed_by: user.email,
       reviewed_at: nowIso,
+      proof_url: null,
+      proof_note: null,
     })
     .eq('id', betId);
   if (error) return sendJson(res, 500, { error: error.message });
 
+  await deleteProofFile(sb, bet.proof_url);
   await applyRewardToProfile(sb, bet, reward);
   return sendJson(res, 200, { ok: true, status: 'completed', reward });
+}
+
+function extractStoragePath(publicUrl) {
+  if (!publicUrl) return null;
+  try {
+    const url = new URL(publicUrl);
+    // Supabase public URL pattern: /storage/v1/object/public/<bucket>/<path>
+    const match = url.pathname.match(/\/storage\/v1\/object\/public\/[^/]+\/(.+)/);
+    return match ? match[1] : null;
+  } catch {
+    return null;
+  }
+}
+
+async function deleteProofFile(sb, proofUrl) {
+  const path = extractStoragePath(proofUrl);
+  if (!path) return;
+  try {
+    await sb.storage.from('public').remove([path]);
+  } catch (err) {
+    console.warn('[moderateBet] Failed to delete proof file:', err.message);
+  }
 }
 
 function computeReward(bet) {

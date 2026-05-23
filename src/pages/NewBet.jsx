@@ -12,9 +12,9 @@ import {
   ShieldAlert,
   PenLine,
   LockKeyhole,
-  CheckCircle2,
   Sparkles,
   Users,
+  UserPlus,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -34,6 +34,7 @@ import GemsBadge from '@/components/common/GemsBadge';
 import { useLang } from '@/lib/i18n';
 import { toast } from 'sonner';
 import { addDays } from 'date-fns';
+import { createTelegramReferralLink } from '@/lib/referrals';
 
 const STAKE_PRESETS = [25, 50, 100, 200, 500];
 const DURATION_PRESETS = [1, 3, 7, 14, 30];
@@ -105,7 +106,6 @@ export default function NewBet() {
   const pickCategory = (key) => {
     setForm((p) => ({ ...p, category: key, title: '', proof_type: '' }));
     setGoalError('');
-    setStep(1);
   };
 
   const pickTemplate = (tpl) => {
@@ -228,6 +228,18 @@ export default function NewBet() {
       <div className="flex items-center justify-center min-h-[60vh]">
         <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
       </div>
+    );
+  }
+
+  if (limitReached) {
+    return (
+      <DailyLimitReached
+        lang={lang}
+        used={betsToday}
+        limit={dailyLimit}
+        profile={profile}
+        onBack={() => navigate(-1)}
+      />
     );
   }
 
@@ -487,7 +499,6 @@ function StepActivity({
                     {lang === 'ru' ? pm?.labelRu : pm?.labelEn}
                   </p>
                 </div>
-                {isSelected && <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />}
               </motion.button>
             );
           })}
@@ -813,6 +824,117 @@ function SummaryRow({ label, value }) {
     <div className="flex items-start justify-between gap-3">
       <span className="text-xs text-muted-foreground shrink-0">{label}</span>
       <span className="text-sm text-right min-w-0">{value}</span>
+    </div>
+  );
+}
+
+function DailyLimitReached({ lang, used, limit, profile, onBack }) {
+  const inviteLink = createTelegramReferralLink(profile?.tg_id || 'user');
+
+  const handleInvite = () => {
+    const tg = window?.Telegram?.WebApp;
+    const text =
+      lang === 'ru'
+        ? 'Заходи в BetYourself — ставь на свои цели и забирай GEMS! 💎🔥'
+        : 'Join me on BetYourself — bet on your goals and earn GEMS! 💎🔥';
+    if (tg?.openTelegramLink) {
+      tg.openTelegramLink(
+        `https://t.me/share/url?url=${encodeURIComponent(inviteLink)}&text=${encodeURIComponent(text)}`,
+      );
+    } else if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(inviteLink);
+      toast.success(lang === 'ru' ? 'Ссылка скопирована' : 'Link copied');
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-[60] flex items-center justify-center p-5"
+      style={{
+        background: 'rgba(8, 6, 16, 0.78)',
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+      }}
+    >
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: 'spring', stiffness: 220, damping: 22 }}
+        className="relative w-full max-w-sm rounded-3xl p-6 space-y-5 overflow-hidden"
+        style={{
+          background:
+            'linear-gradient(160deg, rgba(255,80,120,0.18) 0%, rgba(22,16,38,0.95) 60%, rgba(8,6,16,0.95) 100%)',
+          border: '1px solid rgba(255,255,255,0.12)',
+          boxShadow:
+            '0 30px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.12)',
+        }}
+      >
+        <div
+          className="absolute -top-24 -right-24 w-64 h-64 rounded-full pointer-events-none"
+          style={{
+            background:
+              'radial-gradient(circle, hsl(0 80% 60% / 0.25), transparent 70%)',
+          }}
+        />
+        <div className="relative space-y-5">
+          <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center"
+            style={{
+              background: 'linear-gradient(135deg, hsl(0 85% 60%), hsl(280 80% 55%))',
+              boxShadow: '0 0 28px hsl(0 80% 60% / 0.55)',
+            }}
+          >
+            <ShieldAlert className="w-8 h-8 text-white" />
+          </div>
+
+          <div className="text-center space-y-2">
+            <h2 className="text-xl font-heading font-bold text-foreground">
+              {lang === 'ru' ? 'На сегодня всё!' : "That's it for today!"}
+            </h2>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              {lang === 'ru'
+                ? 'Ты использовал все свои ставки на сегодня. Приглашай больше друзей, чтобы увеличить количество дневных ставок.'
+                : 'You have used all your bets for today. Invite more friends to unlock additional daily bets.'}
+            </p>
+            <p className="text-xs text-neon-cyan font-heading font-semibold">
+              {lang === 'ru' ? '1 друг = +1 ставка в день' : '1 friend = +1 bet per day'}
+            </p>
+          </div>
+
+          <div className="rounded-xl border border-white/10 bg-black/30 p-3 flex items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-destructive/20 text-destructive flex items-center justify-center">
+                <Users className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-[11px] uppercase tracking-wider text-muted-foreground">
+                  {lang === 'ru' ? 'Лимит на сегодня' : 'Daily limit'}
+                </p>
+                <p className="text-sm font-heading font-semibold text-foreground">
+                  {used} / {limit}
+                </p>
+              </div>
+            </div>
+            <span className="text-[11px] font-heading font-semibold text-destructive">
+              {lang === 'ru' ? 'Исчерпан' : 'Reached'}
+            </span>
+          </div>
+
+          <div className="space-y-2.5">
+            <Button
+              onClick={handleInvite}
+              className="w-full h-12 bg-gradient-to-r from-primary to-neon-cyan text-white font-heading font-semibold text-base rounded-xl gap-2"
+            >
+              <UserPlus className="w-4 h-4" />
+              {lang === 'ru' ? 'Пригласить друга' : 'Invite a friend'}
+            </Button>
+            <button
+              onClick={onBack}
+              className="w-full h-11 rounded-xl text-sm font-heading font-semibold text-muted-foreground hover:text-foreground transition-colors"
+            >
+              {lang === 'ru' ? 'Назад' : 'Back'}
+            </button>
+          </div>
+        </div>
+      </motion.div>
     </div>
   );
 }

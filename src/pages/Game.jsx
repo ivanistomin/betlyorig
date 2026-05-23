@@ -1,66 +1,184 @@
-import { motion } from 'framer-motion';
-import { Gamepad2, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { ArrowLeft, Sparkles } from 'lucide-react';
 import { useLang } from '@/lib/i18n';
+import { useProfile } from '@/lib/useProfile';
+import GemsBadge from '@/components/common/GemsBadge';
+import CyberSlots from '@/components/games/CyberSlots';
+import NeonPlinko from '@/components/games/NeonPlinko';
+import CyberWheel from '@/components/games/CyberWheel';
+import AeroCrash from '@/components/games/AeroCrash';
+
+const GAMES = [
+  {
+    id: 'slots',
+    titleRu: 'Cyber Slots',
+    titleEn: 'Cyber Slots',
+    descRu: 'Кибер-слоты с неоновыми кристаллами',
+    descEn: 'Neon crystal slot machine',
+    emoji: '🎰',
+    accent: 'from-fuchsia-500 to-purple-600',
+    glow: 'hsl(290 95% 60%)',
+  },
+  {
+    id: 'plinko',
+    titleRu: 'Neon Plinko',
+    titleEn: 'Neon Plinko',
+    descRu: 'Бросай шар в неоновую сетку',
+    descEn: 'Drop the orb into neon pegs',
+    emoji: '⚡',
+    accent: 'from-cyan-400 to-blue-600',
+    glow: 'hsl(195 95% 55%)',
+  },
+  {
+    id: 'wheel',
+    titleRu: 'Cyber Wheel',
+    titleEn: 'Cyber Wheel',
+    descRu: 'Колесо удачи в стиле киберпанк',
+    descEn: 'Cyberpunk wheel of fortune',
+    emoji: '🎡',
+    accent: 'from-emerald-400 to-teal-600',
+    glow: 'hsl(160 90% 50%)',
+  },
+  {
+    id: 'crash',
+    titleRu: 'Aero Crash',
+    titleEn: 'Aero Crash',
+    descRu: 'Успей забрать до взрыва ракеты',
+    descEn: 'Cash out before the rocket crashes',
+    emoji: '🚀',
+    accent: 'from-orange-400 to-red-600',
+    glow: 'hsl(15 95% 60%)',
+  },
+];
 
 export default function Game() {
   const { lang } = useLang();
-  return (
-    <div className="px-4 pt-6 pb-28 space-y-5">
-      <div>
-        <h1 className="text-2xl font-heading font-bold text-foreground flex items-center gap-2">
-          <span className="text-3xl">🎮</span>
-          {lang === 'ru' ? 'Игра' : 'Game'}
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">
-          {lang === 'ru'
-            ? 'Здесь появятся мини-игры за GEMS.'
-            : 'Mini-games for GEMS will land here.'}
-        </p>
-      </div>
+  const { profile, refreshProfile } = useProfile();
+  const [active, setActive] = useState(null);
 
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="rounded-2xl p-6 text-center relative overflow-hidden"
-        style={{
-          background:
-            'linear-gradient(160deg, hsl(180 60% 16%) 0%, hsl(258 35% 9%) 70%, hsl(250 20% 6%) 100%)',
-          border: '1px solid rgba(0,229,204,0.25)',
-          boxShadow: '0 0 32px rgba(0,229,204,0.18)',
-        }}
-      >
-        <div
-          className="absolute inset-0 opacity-30 pointer-events-none"
-          style={{
-            background:
-              'radial-gradient(ellipse at top, hsl(180 80% 50% / 0.35) 0%, transparent 60%)',
-          }}
-        />
-        <div className="relative space-y-3">
-          <div className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center"
-            style={{
-              background: 'linear-gradient(135deg, hsl(180 80% 50%), hsl(265 90% 60%))',
-              boxShadow: '0 0 28px hsl(180 80% 50% / 0.6)',
-            }}
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="w-6 h-6 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  if (active) {
+    const game = GAMES.find((g) => g.id === active);
+    const GameComponent = {
+      slots: CyberSlots,
+      plinko: NeonPlinko,
+      wheel: CyberWheel,
+      crash: AeroCrash,
+    }[active];
+
+    return (
+      <div className="px-4 pt-4 pb-28 space-y-4">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setActive(null)}
+            className="w-9 h-9 rounded-lg bg-secondary flex items-center justify-center"
           >
-            <Gamepad2 className="w-9 h-9 text-white" />
-          </div>
-          <p className="font-heading font-bold text-foreground text-lg">
-            {lang === 'ru' ? 'Скоро будет' : 'Coming soon'}
-          </p>
-          <p className="text-xs text-muted-foreground max-w-xs mx-auto leading-relaxed">
-            {lang === 'ru'
-              ? 'Играй, выигрывай GEMS и поднимайся выше в таблице лидеров.'
-              : 'Play, win GEMS and climb the leaderboard.'}
-          </p>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-heading font-semibold text-neon-cyan"
-            style={{ background: 'rgba(0,229,204,0.12)', border: '1px solid rgba(0,229,204,0.3)' }}
-          >
-            <Sparkles className="w-3 h-3" />
-            {lang === 'ru' ? 'В разработке' : 'In development'}
+            <ArrowLeft className="w-4 h-4 text-foreground" />
+          </button>
+          <h1 className="text-xl font-heading font-bold text-foreground flex items-center gap-2">
+            <span className="text-2xl">{game.emoji}</span>
+            {lang === 'ru' ? game.titleRu : game.titleEn}
+          </h1>
+          <div className="ml-auto">
+            <GemsBadge amount={profile.gems_balance} />
           </div>
         </div>
-      </motion.div>
+
+        <GameComponent profile={profile} refreshProfile={refreshProfile} lang={lang} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="px-4 pt-6 pb-28 space-y-5">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-heading font-bold text-foreground flex items-center gap-2">
+            <span className="text-3xl">🎮</span>
+            {lang === 'ru' ? 'Игры' : 'Games'}
+          </h1>
+          <p className="text-xs text-muted-foreground mt-1 max-w-xs">
+            {lang === 'ru'
+              ? 'Играй на GEMS и испытай свою удачу. Только виртуальная валюта.'
+              : 'Play with GEMS and test your luck. Virtual currency only.'}
+          </p>
+        </div>
+        <GemsBadge amount={profile.gems_balance} />
+      </div>
+
+      <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-heading font-semibold text-neon-cyan"
+        style={{
+          background: 'rgba(0,229,204,0.12)',
+          border: '1px solid rgba(0,229,204,0.3)',
+        }}
+      >
+        <Sparkles className="w-3 h-3" />
+        {lang === 'ru' ? 'Выбери мини-игру' : 'Pick a mini-game'}
+      </div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <AnimatePresence>
+          {GAMES.map((g, i) => (
+            <motion.button
+              key={g.id}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => setActive(g.id)}
+              className="relative aspect-[4/5] rounded-2xl p-4 text-left overflow-hidden flex flex-col justify-between"
+              style={{
+                background:
+                  'linear-gradient(160deg, rgba(22,16,38,0.85) 0%, rgba(8,6,16,0.95) 100%)',
+                border: '1px solid rgba(255,255,255,0.08)',
+                boxShadow: `0 8px 32px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.04) inset, 0 0 24px ${g.glow}33`,
+              }}
+            >
+              <div
+                className="absolute inset-0 opacity-25 pointer-events-none"
+                style={{
+                  background: `radial-gradient(circle at top right, ${g.glow}88, transparent 60%)`,
+                }}
+              />
+              <div className="relative flex items-start justify-between">
+                <div
+                  className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl bg-gradient-to-br ${g.accent}`}
+                  style={{ boxShadow: `0 0 18px ${g.glow}88` }}
+                >
+                  {g.emoji}
+                </div>
+              </div>
+              <div className="relative space-y-1">
+                <p className="text-sm font-heading font-bold text-foreground leading-tight">
+                  {lang === 'ru' ? g.titleRu : g.titleEn}
+                </p>
+                <p className="text-[11px] text-muted-foreground leading-snug">
+                  {lang === 'ru' ? g.descRu : g.descEn}
+                </p>
+              </div>
+            </motion.button>
+          ))}
+        </AnimatePresence>
+      </div>
+
+      <div className="rounded-2xl p-4 text-center text-[11px] text-muted-foreground"
+        style={{
+          background: 'rgba(22,16,38,0.45)',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}
+      >
+        {lang === 'ru'
+          ? '⚠️ Шанс победы небольшой, как и в любом казино. Играй на виртуальные GEMS — не на деньги.'
+          : '⚠️ The win chance is small, as in any casino. Play with virtual GEMS — not money.'}
+      </div>
     </div>
   );
 }
